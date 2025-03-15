@@ -1,0 +1,48 @@
+{
+    "$jsonSchema": {
+        "bsonType": "object",
+        "required": [
+            "contract_id",
+            "gig_id",
+            "po_id",
+            "package_id",
+            "contract_duration",
+            "contract_remaining_rev",
+            "contract_progress"
+        ],
+        "properties": {
+            "contract_id": {
+                "bsonType": "string",
+                "maxLength": 20,
+                "description": "Primary identifier for the contract, must be a string with max length 20"
+            },
+            "gig_id": {
+                "bsonType": "string",
+                "maxLength": 20,
+                "description": "Foreign key referencing gig, max length 20"
+            },
+            "po_id": {
+                "bsonType": "string",
+                "maxLength": 20,
+                "description": "Foreign key referencing product owner, max length 20"
+            },
+            "package_id": {
+                "bsonType": "string",
+                "maxLength": 20,
+                "description": "Foreign key referencing gig package, max length 20"
+            },
+            "contract_duration": {
+                "bsonType": "decimal",
+                "description": "Duration of the contract, stored as decimal"
+            },
+            "contract_remaining_rev": {
+                "bsonType": "decimal",
+                "description": "Remaining revenue of the contract, stored as decimal"
+            },
+            "contract_progress": {
+                "bsonType": "double",
+                "description": "Progress of the contract, stored as double for floating point precision"
+            }
+        }
+    }
+}

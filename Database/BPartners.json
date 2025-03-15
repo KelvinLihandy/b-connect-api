@@ -1,0 +1,46 @@
+{
+    "$jsonSchema": {
+      "bsonType": "object",
+      "required": ["bp_id", "bp_name", "bp_email", "bp_password"],
+      "properties": {
+        "bp_id": {
+          "bsonType": "string",
+          "maxLength": 20,
+          "description": "Primary identifier, must be a string with max length 20"
+        },
+        "bp_name": {
+          "bsonType": "string",
+          "maxLength": 100,
+          "description": "Partner name, must be a string with max length 100"
+        },
+        "bp_email": {
+          "bsonType": "string",
+          "maxLength": 50,
+          "description": "Partner email, must be a string with max length 50"
+        },
+        "bp_password": {
+          "bsonType": "string",
+          "maxLength": 50,
+          "description": "Partner password, must be a string with max length 50"
+        },
+        "bp_picture": {
+          "bsonType": "string",
+          "maxLength": 100,
+          "description": "Partner picture URL/path, optional string with max length 100"
+        },
+        "bp_rating": {
+          "bsonType": "double",
+          "description": "Partner rating as a double value"
+        },
+        "bp_completes": {
+          "bsonType": ["decimal", "double", "int"],
+          "description": "Number of completed projects/tasks"
+        },
+        "bp_porto_link": {
+          "bsonType": "string",
+          "maxLength": 100,
+          "description": "Partner portfolio link, optional string with max length 100"
+        }
+      }
+    }
+  }

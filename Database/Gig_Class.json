@@ -1,0 +1,26 @@
+{
+    "$jsonSchema": {
+        "bsonType": "object",
+        "required": [
+            "gig_class_id",
+            "gig_class_name"
+        ],
+        "properties": {
+            "gig_class_id": {
+                "bsonType": "string",
+                "maxLength": 20,
+                "description": "Primary identifier, must be a string with max length 20"
+            },
+            "gig_class_name": {
+                "bsonType": "string",
+                "maxLength": 50,
+                "description": "Name of the gig class, must be a string with max length 50"
+            },
+            "gig_class_desc": {
+                "bsonType": "string",
+                "maxLength": 300,
+                "description": "Description of the gig class, optional field with max length 300"
+            }
+        }
+    }
+}

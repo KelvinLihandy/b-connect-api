@@ -1,0 +1,55 @@
+{
+    "$jsonSchema": {
+        "bsonType": "object",
+        "required": [
+            "gig_id",
+            "bp_id",
+            "gig_class_id",
+            "gig_type_id",
+            "gig_name",
+            "gig_picture",
+            "gig_rating",
+            "gig_likes"
+        ],
+        "properties": {
+            "gig_id": {
+                "bsonType": "string",
+                "maxLength": 20,
+                "description": "Primary identifier, must be a string with max length 20"
+            },
+            "bp_id": {
+                "bsonType": "string",
+                "maxLength": 20,
+                "description": "Foreign key referencing bp, must be a string with max length 20"
+            },
+            "gig_class_id": {
+                "bsonType": "string",
+                "maxLength": 20,
+                "description": "Foreign key referencing gig class, must be a string with max length 20"
+            },
+            "gig_type_id": {
+                "bsonType": "string",
+                "maxLength": 20,
+                "description": "Foreign key referencing gig type, must be a string with max length 20"
+            },
+            "gig_name": {
+                "bsonType": "string",
+                "maxLength": 100,
+                "description": "Name of the gig, must be a string with max length 100"
+            },
+            "gig_picture": {
+                "bsonType": "string",
+                "maxLength": 100,
+                "description": "URL or filename of the gig picture, must be a string with max length 100"
+            },
+            "gig_rating": {
+                "bsonType": "double",
+                "description": "Rating of the gig, stored as a double"
+            },
+            "gig_likes": {
+                "bsonType": "decimal",
+                "description": "Number of likes for the gig, stored as a decimal"
+            }
+        }
+    }
+}

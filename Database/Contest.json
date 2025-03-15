@@ -1,0 +1,52 @@
+{
+    "$jsonSchema": {
+        "bsonType": "object",
+        "required": [
+            "contest_id",
+            "po_id",
+            "contest_name",
+            "contest_prize",
+            "contest_duration",
+            "contest_start",
+            "contest_end",
+            "contest_state"
+        ],
+        "properties": {
+            "contest_id": {
+                "bsonType": "string",
+                "maxLength": 20,
+                "description": "Primary identifier, must be a string with max length 20"
+            },
+            "po_id": {
+                "bsonType": "string",
+                "maxLength": 20,
+                "description": "Foreign key referencing purchase order, must be a string with max length 20"
+            },
+            "contest_name": {
+                "bsonType": "string",
+                "maxLength": 100,
+                "description": "Name of the contest, must be a string with max length 100"
+            },
+            "contest_prize": {
+                "bsonType": "decimal",
+                "description": "Prize amount for the contest, stored as a decimal"
+            },
+            "contest_duration": {
+                "bsonType": "decimal",
+                "description": "Duration of the contest, stored as a decimal"
+            },
+            "contest_start": {
+                "bsonType": "date",
+                "description": "Start date and time of the contest"
+            },
+            "contest_end": {
+                "bsonType": "date",
+                "description": "End date and time of the contest"
+            },
+            "contest_state": {
+                "bsonType": "bool",
+                "description": "State of the contest (active/inactive), stored as a boolean"
+            }
+        }
+    }
+}

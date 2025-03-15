@@ -1,0 +1,32 @@
+{
+    "$jsonSchema": {
+        "bsonType": "object",
+        "required": [
+            "payment_id",
+            "contract_id",
+            "payment_type_id",
+            "payment_status"
+        ],
+        "properties": {
+            "payment_id": {
+                "bsonType": "string",
+                "maxLength": 20,
+                "description": "Primary identifier for the payment, must be a string with max length 20"
+            },
+            "contract_id": {
+                "bsonType": "string",
+                "maxLength": 20,
+                "description": "Foreign key referencing contract, max length 20"
+            },
+            "payment_type_id": {
+                "bsonType": "string",
+                "maxLength": 20,
+                "description": "Foreign key referencing payment type, max length 20"
+            },
+            "payment_status": {
+                "bsonType": "bool",
+                "description": "Status of the payment (true for paid, false for unpaid)"
+            }
+        }
+    }
+}

@@ -1,0 +1,39 @@
+{
+    "$jsonSchema": {
+        "bsonType": "object",
+        "required": [
+            "po_id",
+            "po_name",
+            "po_email",
+            "po_password",
+            "po_picture"
+        ],
+        "properties": {
+            "po_id": {
+                "bsonType": "string",
+                "maxLength": 20,
+                "description": "Primary identifier for the Product Owner, must be a string with max length 20"
+            },
+            "po_name": {
+                "bsonType": "string",
+                "maxLength": 100,
+                "description": "Name of the Product Owner, max length 100"
+            },
+            "po_email": {
+                "bsonType": "string",
+                "maxLength": 50,
+                "description": "Email of the Product Owner, must be unique, max length 50"
+            },
+            "po_password": {
+                "bsonType": "string",
+                "maxLength": 50,
+                "description": "Hashed password of the Product Owner, max length 50"
+            },
+            "po_picture": {
+                "bsonType": "string",
+                "maxLength": 100,
+                "description": "Profile picture URL of the Product Owner, max length 100"
+            }
+        }
+    }
+}

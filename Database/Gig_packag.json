@@ -1,0 +1,38 @@
+{
+    "$jsonSchema": {
+        "bsonType": "object",
+        "required": [
+            "package_id",
+            "gig_id",
+            "package_name",
+            "package_price"
+        ],
+        "properties": {
+            "package_id": {
+                "bsonType": "string",
+                "maxLength": 20,
+                "description": "Primary identifier for the gig package, must be a string with max length 20"
+            },
+            "gig_id": {
+                "bsonType": "string",
+                "maxLength": 20,
+                "description": "Foreign key referencing gig, max length 20"
+            },
+            "package_name": {
+                "bsonType": "string",
+                "maxLength": 100,
+                "description": "Name of the package, must be a string with max length 100"
+            },
+            "package_desc": {
+                "bsonType": "string",
+                "maxLength": 500,
+                "description": "Description of the package, max length 500 (optional)",
+                "nullable": true
+            },
+            "package_price": {
+                "bsonType": "decimal",
+                "description": "Price of the package, stored as decimal for precision"
+            }
+        }
+    }
+}

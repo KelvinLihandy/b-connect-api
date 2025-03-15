@@ -1,0 +1,43 @@
+{
+    "$jsonSchema": {
+        "bsonType": "object",
+        "required": [
+            "submission_id",
+            "contest_id",
+            "bp_id",
+            "submission_content",
+            "submission_name",
+            "submission_time"
+        ],
+        "properties": {
+            "submission_id": {
+                "bsonType": "string",
+                "maxLength": 20,
+                "description": "Primary identifier, must be a string with max length 20"
+            },
+            "contest_id": {
+                "bsonType": "string",
+                "maxLength": 20,
+                "description": "Foreign key referencing contest, must be a string with max length 20"
+            },
+            "bp_id": {
+                "bsonType": "string",
+                "maxLength": 20,
+                "description": "Foreign key referencing bp, must be a string with max length 20"
+            },
+            "submission_content": {
+                "bsonType": "object",
+                "description": "Submission file stored using GridFS"
+            },
+            "submission_name": {
+                "bsonType": "string",
+                "maxLength": 100,
+                "description": "Name of the submission, must be a string with max length 100"
+            },
+            "submission_time": {
+                "bsonType": "date",
+                "description": "Datetime of the submission"
+            }
+        }
+    }
+}

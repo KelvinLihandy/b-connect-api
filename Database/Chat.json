@@ -1,0 +1,44 @@
+{
+    "$jsonSchema": {
+        "bsonType": "object",
+        "required": [
+            "chat_id",
+            "sender_id",
+            "receiver_id",
+            "contract_id",
+            "chat_message",
+            "chat_time"
+        ],
+        "properties": {
+            "chat_id": {
+                "bsonType": "string",
+                "maxLength": 20,
+                "description": "Primary identifier for the chat, must be a string with max length 20"
+            },
+            "sender_id": {
+                "bsonType": "string",
+                "maxLength": 20,
+                "description": "Foreign key referencing sender user ID, max length 20"
+            },
+            "receiver_id": {
+                "bsonType": "string",
+                "maxLength": 20,
+                "description": "Foreign key referencing receiver user ID, max length 20"
+            },
+            "contract_id": {
+                "bsonType": "string",
+                "maxLength": 20,
+                "description": "Foreign key referencing contract ID, max length 20"
+            },
+            "chat_message": {
+                "bsonType": "string",
+                "maxLength": 500,
+                "description": "Message content, max length 500"
+            },
+            "chat_time": {
+                "bsonType": "date",
+                "description": "Timestamp when the chat message was sent"
+            }
+        }
+    }
+}

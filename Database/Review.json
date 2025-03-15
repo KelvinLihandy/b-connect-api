@@ -1,0 +1,36 @@
+{
+    "$jsonSchema": {
+        "bsonType": "object",
+        "required": [
+            "review_id",
+            "contract_id",
+            "po_id"
+        ],
+        "properties": {
+            "review_id": {
+                "bsonType": "string",
+                "maxLength": 20,
+                "description": "Primary identifier for the review, must be a string with max length 20"
+            },
+            "contract_id": {
+                "bsonType": "string",
+                "maxLength": 20,
+                "description": "Foreign key referencing contract ID, max length 20"
+            },
+            "po_id": {
+                "bsonType": "string",
+                "maxLength": 20,
+                "description": "Foreign key referencing product owner ID, max length 20"
+            },
+            "review_message": {
+                "bsonType": ["string", "null"],
+                "maxLength": 500,
+                "description": "Optional review message, max length 500"
+            },
+            "review_rating": {
+                "bsonType": ["double", "null"],
+                "description": "Optional review rating, must be a double"
+            }
+        }
+    }
+}
