@@ -1,8 +1,8 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const User = require("../models/User"); // Sesuaikan dengan model yang Anda gunakan
-const { hashPassword, verifyPassword } = require("../utils/passwordUtils");
+const User = require("../models/User");
+const { hashPassword, verifyPassword } = require("../utils/PasswordUtils");
 
 const router = express.Router();
 

@@ -1,24 +1,27 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 
-const userSchema = new mongoose.Schema({
-    name: {
-        type: String,
-        required: [true, "Nama wajib diisi"],
-        maxlength: 100
+const userSchema = new mongoose.Schema(
+    {
+        name: {
+            type: String,
+            required: [true, "Nama wajib diisi"],
+            maxlength: 100
+        },
+        email: {
+            type: String,
+            required: [true, "Email wajib diisi"],
+            unique: true,
+            match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Format email tidak valid"]
+        },
+        password: {
+            type: String,
+            required: [true, "Password wajib diisi"],
+            minlength: [8, "Password minimal 8 karakter"]
+        },
     },
-    email: {
-        type: String,
-        required: [true, "Email wajib diisi"],
-        unique: true,
-        match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Format email tidak valid"]
-    },
-    password: {
-        type: String,
-        required: [true, "Password wajib diisi"],
-        minlength: [8, "Password minimal 8 karakter"]
-    }
-});
+    { versionKey: false }
+);
 
 // Hash password sebelum disimpan
 userSchema.pre("save", async function (next) {

@@ -1,5 +1,5 @@
-const User = require("../models/user");
-const { hashPassword, verifyPassword } = require("../utils/passwordUtils");
+const User = require("../models/User");
+const { hashPassword, verifyPassword } = require("../utils/PasswordUtils");
 const jwt = require("jsonwebtoken");
 
 exports.register = async (req, res) => {
@@ -52,7 +52,7 @@ exports.login = async (req, res) => {
     }
 
     // Verifikasi password
-    const isMatch = await verifyPassword(password, user.password);
+    const isMatch = verifyPassword(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ error: "Password salah!" });
     }
@@ -67,3 +67,4 @@ exports.login = async (req, res) => {
     res.status(500).json({ error: "Terjadi kesalahan pada server." });
   }
 };
+  
