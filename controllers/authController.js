@@ -1,5 +1,5 @@
 const User = require("../models/User");
-const { hashPassword, verifyPassword } = require("../utils/PasswordUtils");
+const { verifyPassword } = require("../utils/PasswordUtils");
 const jwt = require("jsonwebtoken");
 
 exports.register = async (req, res) => {
@@ -22,11 +22,8 @@ exports.register = async (req, res) => {
       return res.status(400).json({ error: "Email sudah digunakan!" });
     }
 
-    // Hash password
-    const hashedPassword = await hashPassword(password);
-
     // Simpan user baru
-    const newUser = new User({ name, email, password: hashedPassword });
+    const newUser = new User({ name, email, password });
     await newUser.save();
 
     res.status(201).json({ message: "Registrasi berhasil!" });
