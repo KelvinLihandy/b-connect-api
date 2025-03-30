@@ -1,9 +1,14 @@
 const mongoose = require("mongoose");
-const bcrypt = require("bcrypt");
-const { hashPassword } = require("../utils/PasswordUtils");
+const { hashing } = require("../utils/HashUtils");
 
 const userSchema = new mongoose.Schema(
     {
+        role: {
+            type: String,
+            required: [true, "User harus ada role"],
+            maxlength: 50,
+            default: "freelancer"
+        },
         name: {
             type: String,
             required: [true, "Nama wajib diisi"],
@@ -32,12 +37,11 @@ const userSchema = new mongoose.Schema(
     { versionKey: false }
 );
 
-// Hash password sebelum disimpan
 userSchema.pre("save", async function (next) {
-    if (!this.isModified("password")){
+    if (!this.isModified("password")) {
         return next()
     }
-    this.password = await hashPassword(this.password);
+    this.password = await hashing(this.password);
     next();
 });
 
