@@ -2,18 +2,15 @@ const mongoose = require("mongoose");
 const { hashing, cryptHash } = require("../utils/HashUtils");
 
 const otpSchema = new mongoose.Schema({
-  token:
-  {
+  token: {
     type: String,
     required: true
   },
-  otp:
-  {
+  otp: {
     type: String,
     required: true
   },
-  expiresAt:
-  {
+  expiresAt: {
     type: Date,
     required: true
   }
