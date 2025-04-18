@@ -57,10 +57,19 @@ exports.login = async (req, res) => {
       return res.status(400).json({ error: "Password salah!" });
     }
 
-    // Buat token JWT
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
+    const loggedUser = {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      rating: user.rating,
+      completes: user.completes
+    }
 
-    res.cookie("token", token, { httpOnly: true, secure: true, sameSite: "strict" });
+    // Buat token JWT
+    const token = jwt.sign(loggedUser, process.env.JWT_SECRET, { expiresIn: "1d" });
+
+    res.cookie("token", token, { httpOnly: true, secure: true, sameSite: "strict", maxAge: 24 * 60 * 60 * 1000 });
+    console.log(token); //remove
     res.status(200).json({ message: "Login berhasil!", token });
   } catch (err) {
     console.error("🔥 Error:", err);
@@ -73,8 +82,15 @@ exports.sendOTP = async (req, res) => {
 
   try {
     const user = await User.findOne({ email });
+    const allOTPs = await OTP.find({});
     if (!user) {
       return res.status(400).json({ error: "Akun tidak ditemukan." });
+    }
+    for (const record of allOTPs) {
+      const existOTP = await verifyHash(email, record.token);
+      if (existOTP) {
+        return res.status(400).json({ error: "OTP akun ini belum expired" })
+      }
     }
 
     const otpNumber = Math.floor(100000 + Math.random() * 900000).toString();
@@ -111,15 +127,45 @@ exports.sendOTP = async (req, res) => {
   }
 };
 
+exports.verifyOtp = async (req, res) => {
+  const { token, otp } = req.body;
+
+  try {
+    let otpUser = null;
+    const allOTPs = await OTP.find({});
+    for (const record of allOTPs) {
+      const existToken = token === record.token;
+      const existOTP = await verifyHash(otp.toString(), record.otp);
+      if (existToken && existOTP) {
+        otpUser = record;
+        break;
+      }
+    }
+    if (!otpUser) {
+      return res.status(400).json({ error: "OTP tidak ditemukan." });
+    }
+    if (otpUser.expiresAt < new Date()) {
+      return res.status(400).json({ error: "Batas waktu OTP sudah lewat." });
+    }
+    await OTP.deleteOne({ _id: otpUser._id });
+    const otpJWT = jwt.sign({ token: otpUser.token }, process.env.JWT_SECRET, { expiresIn: "10m" });
+    res.status(200).json({ message: "OTP berhasil diverifikasi.", otp: otpJWT });
+  } catch (err) {
+    console.error("🔥 Error verifikasi OTP:", err);
+    res.status(500).json({ error: "Terjadi kesalahan pada server." });
+  }
+}
+
 exports.resendOTP = async (req, res) => {
   const { token, email } = req.body;
 
   try {
-    const user = await OTP.findOne({
-      token: { $regex: new RegExp(token, "i") },
-    });
-    if (!user) {
-      return res.status(400).json({ error: "Akun tidak ditemukan." });
+    const allOTPs = await OTP.find({});
+    for (const record of allOTPs) {
+      const existOTP = token === record.token;
+      if (existOTP) {
+        return res.status(400).json({ error: "OTP akun ini belum expired" })
+      }
     }
 
     const otpNumber = Math.floor(100000 + Math.random() * 900000).toString();
@@ -156,36 +202,17 @@ exports.resendOTP = async (req, res) => {
   }
 };
 
-exports.verifyOtp = async (req, res) => {
-  const { token, otp } = req.body;
-
-  try {
-    const otpUser = await OTP.findOne({
-      token: { $regex: new RegExp(token, "i") },
-    });
-    if (!otpUser) {
-      return res.status(400).json({ error: "OTP tidak ditemukan." });
-    }
-    if (otpUser.expiresAt < new Date()) {
-      return res.status(400).json({ error: "Batas waktu OTP sudah lewat." });
-    }
-    const isMatch = await verifyHash(otp.toString(), otpUser.otp);
-    if (!isMatch) {
-      return res.status(400).json({ error: "OTP salah." });
-    }
-    await OTP.deleteOne({ _id: otpUser._id });
-    res.status(200).json({ message: "OTP berhasil diverifikasi." });
-  } catch (err) {
-    console.error("🔥 Error verifikasi OTP:", err);
-    res.status(500).json({ error: "Terjadi kesalahan pada server." });
-  }
-}
-
 exports.changePassword = async (req, res) => {
   const { email, password, passwordConf } = req.body;
-
+  const validToken = req.token;
+  console.log(validToken);
+  const user = await User.findOne({ email });
+  const validEmail = await verifyHash(email, validToken);
   try {
-    if (email == null) return res.status(400).json({ error: "Email tidak ada." });
+    if (!validEmail) return res.status(400).json({ error: "Email tidak sama dengan request." });
+    if (!user) {
+      return res.status(400).json({ error: "User tidak ditemukan!" });
+    }
     if (!/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(password)) {
       return res.status(400).json({ error: "Password lama tidak valid." });
     }
@@ -194,13 +221,11 @@ exports.changePassword = async (req, res) => {
     }
     if (password !== passwordConf) return res.status(400).json({ error: "Password dan konfimasi berbeda." });
 
-    const updatedUser = await User.findOneAndUpdate(
+    await User.findOneAndUpdate(
       { email },
       { $set: { password: await hashing(passwordConf) } },
-      { new: false }
+      { new: true }
     );
-
-    if (!updatedUser) return res.status(400).json({ error: "User tidak ada" });
     res.status(200).json({ message: "Password berhasil diubah." })
   } catch (err) {
     console.error("🔥 Error mengganti password:", err);

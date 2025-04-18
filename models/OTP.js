@@ -1,6 +1,5 @@
 const mongoose = require("mongoose");
-const { hashing, cryptHash } = require("../utils/HashUtils");
-
+const { hashing } = require("../utils/HashUtils");
 const otpSchema = new mongoose.Schema({
   token: {
     type: String,
@@ -14,13 +13,15 @@ const otpSchema = new mongoose.Schema({
     type: Date,
     required: true
   }
-});
+},
+  { versionKey: false }
+);
 
 otpSchema.index({ expiresAt: -1 }, { expireAfterSeconds: 0 });
 
 otpSchema.pre("save", async function (next) {
   this.otp = await hashing(this.otp);
-  this.token = cryptHash(this.token);
+  this.token = await hashing(this.token);
   next();
 });
 

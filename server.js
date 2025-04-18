@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const authRoute = require("./routes/Auth");
+const gigsRoute = require("./routes/Product");
 const cors = require("cors")
 
 dotenv.config();
@@ -21,7 +22,7 @@ mongoose
 
 // Routes
 app.use("/api/auth", authRoute);
-
+app.use("/api/gigs", gigsRoute);
 // Default Route
 app.get("/", (req, res) => {
   res.send("API is running...");

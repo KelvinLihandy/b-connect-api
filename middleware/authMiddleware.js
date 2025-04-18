@@ -10,7 +10,7 @@ const authMiddleware = (req, res, next) => {
   try {
     const verified = jwt.verify(token, process.env.JWT_SECRET);
     req.user = verified;
-    next();
+    next(); 
   } catch (err) {
     return res.status(403).json({ error: "Token tidak valid!" });
   }
