@@ -1,8 +1,9 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const PackageSchema = new mongoose.Schema({
   type: {
     type: String,
+    enum: ["Basic", "Standard"],
     required: true
   },
   name: {
@@ -17,7 +18,7 @@ const PackageSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  deliveryTime: {
+  deliveryDay: {
     type: String,
     required: true
   },
@@ -45,11 +46,18 @@ const gigSchema = new mongoose.Schema({
   },
   type: {
     type: String,
+    enum: ["Graphics Design", "UI/UX Design", "Video Editing", "Content Writing", "Translation", "Photography", "Web Development"],
     required: true
   },
   image: {
-    type: String,
-    required: true
+    type: [String],
+    required: true,
+    validate: {
+      validator: function (val) {
+        return Array.isArray(val) && val.length >= 1 && val.length <= 3;
+      },
+      message: 'Gambar ada 1 - 3'
+    }
   },
   description: {
     type: String,
@@ -84,9 +92,9 @@ const gigSchema = new mongoose.Schema({
   { versionKey: false }
 );
 
-otpSchema.pre("save", async function (next) {
+gigSchema.pre("save", async function (next) {
   next();
 });
 
 const Gig = mongoose.model("Gig", gigSchema);
-module.exports = Gig;
+export default Gig

@@ -1,11 +1,13 @@
-const User = require("../models/User");
-const OTP = require("../models/OTP");
-const { verifyHash, hashing } = require("../utils/HashUtils");
-const jwt = require("jsonwebtoken");
-const nodemailer = require("nodemailer");
-require("dotenv").config();
+import User from "../models/User.js";
+import OTP from "../models/OTP.js";
+import { verifyHash, hashing } from "../utils/HashUtils.js";
+import jwt from "jsonwebtoken";
+import nodemailer from "nodemailer";
+import dotenv from "dotenv";
 
-exports.register = async (req, res) => {
+dotenv.config()
+
+const register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
@@ -36,7 +38,7 @@ exports.register = async (req, res) => {
   }
 };
 
-exports.login = async (req, res) => {
+const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -77,7 +79,7 @@ exports.login = async (req, res) => {
   }
 };
 
-exports.sendOTP = async (req, res) => {
+const sendOTP = async (req, res) => {
   const { email } = req.body;
 
   try {
@@ -127,7 +129,7 @@ exports.sendOTP = async (req, res) => {
   }
 };
 
-exports.verifyOtp = async (req, res) => {
+const verifyOtp = async (req, res) => {
   const { token, otp } = req.body;
 
   try {
@@ -156,7 +158,7 @@ exports.verifyOtp = async (req, res) => {
   }
 }
 
-exports.resendOTP = async (req, res) => {
+const resendOTP = async (req, res) => {
   const { token, email } = req.body;
 
   try {
@@ -202,8 +204,9 @@ exports.resendOTP = async (req, res) => {
   }
 };
 
-exports.changePassword = async (req, res) => {
+const changePassword = async (req, res) => {
   const { email, password, passwordConf } = req.body;
+  
   const validToken = req.token;
   console.log(validToken);
   const user = await User.findOne({ email });
@@ -232,3 +235,5 @@ exports.changePassword = async (req, res) => {
     res.status(500).json({ error: "Terjadi kesalahan pada server." });
   }
 }
+
+export { login, register, changePassword, sendOTP, resendOTP, verifyOtp };

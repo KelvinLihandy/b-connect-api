@@ -1,4 +1,4 @@
-const jwt = require("jsonwebtoken");
+import jwt from "jsonwebtoken";
 
 const OTPMiddleware = (req, res, next) => {
   const authHeader = req.headers['authorization']
@@ -15,4 +15,4 @@ const OTPMiddleware = (req, res, next) => {
   }
 };
 
-module.exports = OTPMiddleware;
+export default OTPMiddleware;

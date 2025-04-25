@@ -1,5 +1,5 @@
-const bcrypt = require("bcrypt");
-const crypto = require("crypto");
+import bcrypt from "bcrypt";
+import crypto from "crypto";
 
 const hashing = async (string, rounds=10) => {
   const saltRounds = rounds;
@@ -14,4 +14,4 @@ const verifyHash = async (input, hashed) => {
   return await bcrypt.compare(input, hashed);
 };
 
-module.exports = { hashing, cryptHash, verifyHash };
+export { hashing, cryptHash, verifyHash };

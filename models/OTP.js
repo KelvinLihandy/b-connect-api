@@ -1,5 +1,6 @@
-const mongoose = require("mongoose");
-const { hashing } = require("../utils/HashUtils");
+import mongoose from "mongoose";
+import { hashing } from "../utils/HashUtils.js";
+
 const otpSchema = new mongoose.Schema({
   token: {
     type: String,
@@ -26,4 +27,4 @@ otpSchema.pre("save", async function (next) {
 });
 
 const OTP = mongoose.model("OTP", otpSchema);
-module.exports = OTP;
+export default OTP
