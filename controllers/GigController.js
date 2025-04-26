@@ -46,7 +46,7 @@ const getGig = async (req, res) => {
 
   const finalFilter = { accepted: true, };
   if (name !== undefined && name !== null && name !== "") {
-    filter.name = { $regex: name, $options: "i" }; // case-insensitive search
+    filter.name = { $regex: name, $options: "i" };
   }
   if (category && category.length > 0) {
     filter.category = { $in: category };
@@ -58,13 +58,24 @@ const getGig = async (req, res) => {
     filter.rating = { $gte: rating };
   }
   try {
-    const gigList = await Gig.find(filter);
+    const gigList = await Gig.find(filter).select("_id image name packaes.price rating sold");
     return res.status(200).json({ filteredGigs: gigList });
   }
   catch (err) {
     console.error("🔥 Error saat mencari gig:", error);
-    res.status(500).json({ error: "Gagal mencari gig." });
+    return res.status(500).json({ error: "Gagal mencari gig." });
+  }
+};
+
+const getGigDetails = async (req, res) => {
+  const { gigId } = req.params;
+  try {
+    const gig = await Gig.findOne({ _id: gigId });
+    if(!gig) return res.status(400).json({error: `Tidak ada gig dengan id ${gigId}`});
+    return res.status(200).json({message: `Gig ditemukan ${gig}`})
+  } catch (err) {
+
   }
 }
 
-export { createGig, getGig }
+export { createGig, getGig, getGigDetails }
