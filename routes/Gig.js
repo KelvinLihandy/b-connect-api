@@ -1,8 +1,8 @@
 import express from "express";
-import { createGig, searchGigName } from "../controllers/GigController.js";
+import { createGig, getGig } from "../controllers/GigController.js";
 
 const router = express.Router();
-router.post("/createGig", createGig);
-router.post("/searchGigName", searchGigName);
+router.post("/get-gig", getGig);
+router.post("/create-gig", createGig);
 
 export default router;

@@ -31,10 +31,10 @@ const register = async (req, res) => {
     const newUser = new User({ name, email, password });
     await newUser.save();
 
-    res.status(201).json({ message: "Registrasi berhasil!" });
+    return res.status(201).json({ message: "Registrasi berhasil!" });
   } catch (err) {
     console.error("🔥 Error:", err);
-    res.status(500).json({ error: "Terjadi kesalahan pada server." });
+    return res.status(500).json({ error: "Terjadi kesalahan pada server." });
   }
 };
 
@@ -72,10 +72,10 @@ const login = async (req, res) => {
 
     res.cookie("token", token, { httpOnly: true, secure: true, sameSite: "strict", maxAge: 24 * 60 * 60 * 1000 });
     console.log(token); //remove
-    res.status(200).json({ message: "Login berhasil!", token });
+    return res.status(200).json({ message: "Login berhasil!", token });
   } catch (err) {
     console.error("🔥 Error:", err);
-    res.status(500).json({ error: "Terjadi kesalahan pada server." });
+    return res.status(500).json({ error: "Terjadi kesalahan pada server." });
   }
 };
 
@@ -122,10 +122,10 @@ const sendOTP = async (req, res) => {
       `,
     };
     await transporter.sendMail(mailOptions);
-    res.status(200).json({ message: "Email sukses dikirim", redirectUrl: `/sign-in/verify-otp?token=${otp.token}` });
+    return res.status(200).json({ message: "Email sukses dikirim", redirectUrl: `/sign-in/verify-otp?token=${otp.token}` });
   } catch (err) {
     console.error("🔥 Error pengiriman OTP:", err);
-    res.status(500).json({ error: "Terjadi kesalahan pada server." });
+    return res.status(500).json({ error: "Terjadi kesalahan pada server." });
   }
 };
 
@@ -151,10 +151,10 @@ const verifyOtp = async (req, res) => {
     }
     await OTP.deleteOne({ _id: otpUser._id });
     const otpJWT = jwt.sign({ token: otpUser.token }, process.env.JWT_SECRET, { expiresIn: "10m" });
-    res.status(200).json({ message: "OTP berhasil diverifikasi.", otp: otpJWT });
+    return res.status(200).json({ message: "OTP berhasil diverifikasi.", otp: otpJWT });
   } catch (err) {
     console.error("🔥 Error verifikasi OTP:", err);
-    res.status(500).json({ error: "Terjadi kesalahan pada server." });
+    return res.status(500).json({ error: "Terjadi kesalahan pada server." });
   }
 }
 
@@ -197,10 +197,10 @@ const resendOTP = async (req, res) => {
       `,
     };
     await transporter.sendMail(mailOptions);
-    res.status(200).json({ message: "Email sukses dikirim kembali", time: 5 });
+    return res.status(200).json({ message: "Email sukses dikirim kembali", time: 5 });
   } catch (err) {
     console.error("🔥 Error pengiriman OTP kembali:", err);
-    res.status(500).json({ error: "Terjadi kesalahan pada server." });
+    return res.status(500).json({ error: "Terjadi kesalahan pada server." });
   }
 };
 
@@ -229,10 +229,10 @@ const changePassword = async (req, res) => {
       { $set: { password: await hashing(passwordConf) } },
       { new: true }
     );
-    res.status(200).json({ message: "Password berhasil diubah." })
+    return res.status(200).json({ message: "Password berhasil diubah." })
   } catch (err) {
     console.error("🔥 Error mengganti password:", err);
-    res.status(500).json({ error: "Terjadi kesalahan pada server." });
+    return res.status(500).json({ error: "Terjadi kesalahan pada server." });
   }
 }
 

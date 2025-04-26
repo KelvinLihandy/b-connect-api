@@ -1,45 +1,9 @@
+import { upload } from "../config/multer.js";
 import Gig from "../models/Gig.js";
-import { uploadGigImages } from "./DriveController.js";
-import multer from "multer";
-// const createGig = async (req, res) => {
-//   const { name, type, description, creator, workFlow, packages } = req.body;
-//   const gigImage = req.files;
+import { uploadMultipleImage } from "./DriveController.js";
+import dotenv from "dotenv";
 
-//   try {
-//     const imageLinkList = await uploadGigImages(req);
-//     const newGig = new Gig({
-//       name,
-//       type,
-//       description,
-//       creator,
-//       workFlow,
-//       packages,
-//       images: imageLinkLhst,
-//     });
-//     await newGig.save();
-//     return res.status(200).json({ newGig: newGig });
-//   } catch (error) {
-//     console.error("🔥 Error saat membuat jasa:", error);
-//     res.status(500).json({ error: "Gagal membuat jasa." });
-//   }
-// }
-import { google } from 'googleapis';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-import { oauth2Client } from "../config/db.js";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const drive = google.drive({ version: 'v3', auth: oauth2Client });
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, __dirname);
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + '-' + file.originalname);
-  }
-});
-const upload = multer({ storage });
+dotenv.config();
 
 const createGig = [
   upload.array('images', 3),
@@ -52,8 +16,6 @@ const createGig = [
     }
 
     try {
-      const links = await uploadGigImages(gigImages, name);
-
       const gigData = {
         name,
         type,
@@ -61,35 +23,48 @@ const createGig = [
         creator,
         workFlow,
         packages,
-        images: links,
+        images: ["temp"],
       };
-
-      await Gig.create(gigData);
-
-      return res.status(201).json({ message: "Gig created successfully", gig: gigData });
+      const newGig = await Gig.create(gigData);
+      const links = await uploadMultipleImage(gigImages, newGig._id, process.env.DRIVE_GIGIMAGE_ID);
+      const imagedGig = await Gig.findOneAndUpdate(
+        newGig._id,
+        { $set: { images: links } },
+        { new: true }
+      );
+      if (!imagedGig) return res.status(400).json({ error: "Gig id tidak ditemukan" });
+      return res.status(201).json({ message: "Gig berhasil dibuat", gig: imagedGig });
     } catch (err) {
-      console.error("🔥 Error uploading images:", err);
-      return res.status(500).json({ error: "Failed to create gig" });
+      console.error("🔥 Error membuat gig:", err);
+      return res.status(500).json({ error: "Gagal membuat gig" });
     }
   }
 ];
 
-const searchGigName = async (req, res) => {
-  const { searchQuery } = req.body;
+const getGig = async (req, res) => {
+  const { name, category, minPrice, maxPrice, rating } = req.body;
 
-  if (!searchQuery) {
-    return res.status(400).json({ error: "Query tidak boleh kosong." });
+  const finalFilter = { accepted: true, };
+  if (name !== undefined && name !== null && name !== "") {
+    filter.name = { $regex: name, $options: "i" }; // case-insensitive search
+  }
+  if (category && category.length > 0) {
+    filter.category = { $in: category };
+  }
+  if (minPrice !== undefined && maxPrice !== undefined) {
+    filter["packages.price"] = { $gte: minPrice, $lte: maxPrice };
+  }
+  if (rating !== undefined && rating !== null) {
+    filter.rating = { $gte: rating };
   }
   try {
-    const gigList = await Gig.find({
-      name: { $regex: searchQuery, $options: "i" },
-      accepted: true
-    });
-    return res.status(200).json({ addedGigs: gigList });
-  } catch (error) {
-    console.error("🔥 Error saat mencari jasa:", error);
-    res.status(500).json({ error: "Gagal mencari jasa." });
+    const gigList = await Gig.find(filter);
+    return res.status(200).json({ filteredGigs: gigList });
+  }
+  catch (err) {
+    console.error("🔥 Error saat mencari gig:", error);
+    res.status(500).json({ error: "Gagal mencari gig." });
   }
 }
 
-export { createGig, searchGigName }
+export { createGig, getGig }

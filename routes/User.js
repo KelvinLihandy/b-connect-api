@@ -1,9 +1,8 @@
 import express from "express";
-import { uploadProfilePicture } from "../controllers/DriveController.js";
-import { getTrendingUsers } from "../controllers/UserController.js";
+import { uploadProfilePicture, getTrendingUsers } from "../controllers/UserController.js";
 
 const router = express.Router();
-router.post("/uploadProfilePicture", uploadProfilePicture);
-router.get("/trendingUsers", getTrendingUsers);
+router.post("/upload-profile-picture", uploadProfilePicture);
+router.get("/get-trending-users", getTrendingUsers);
 
 export default router;

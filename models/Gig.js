@@ -44,14 +44,14 @@ const gigSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  type: {
+  category: {
     type: String,
     enum: ["Graphics Design", "UI/UX Design", "Video Editing", "Content Writing", "Translation", "Photography", "Web Development"],
     required: true
   },
   image: {
     type: [String],
-    required: true,
+    required: false,
     validate: {
       validator: function (val) {
         return Array.isArray(val) && val.length >= 1 && val.length <= 3;
@@ -88,6 +88,10 @@ const gigSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  sold : {
+    type: Number,
+    default: 0
+  }
 },
   { versionKey: false }
 );

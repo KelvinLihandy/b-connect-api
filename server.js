@@ -8,6 +8,7 @@ import fs from "fs";
 import { connectMongo, connectDrive, oauth2Client } from "./config/db.js";
 
 dotenv.config();
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 app.use(cors());
@@ -24,6 +25,7 @@ app.use("/api/user", userRoute);
 app.get("/", (req, res) => {
   res.send("API is running...");
 });
+
 
 const storeTokens = (tokens) => {
   fs.writeFileSync('tokens.json', JSON.stringify(tokens));
@@ -56,4 +58,3 @@ app.get('/oauth2callback', async (req, res) => {
     console.error("❌ Error starting server:", err);
   }
 })();
-

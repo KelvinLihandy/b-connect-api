@@ -54,4 +54,4 @@ const connectDrive = async () => {
   }
 }
 
-export { connectMongo, connectDrive, oauth2Client }
+export { connectMongo, connectDrive, oauth2Client, drive }

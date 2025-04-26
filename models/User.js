@@ -11,6 +11,10 @@ const userSchema = new mongoose.Schema({
     default: Date.now,
     immutable: true
   },
+  location: {
+    type: String,
+    default: ""
+  },
   picture: {
     type: String,
     default: "temp"
