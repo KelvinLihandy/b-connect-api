@@ -32,10 +32,9 @@ const storeTokens = (tokens) => {
 };
 
 app.get('/oauth2callback', async (req, res) => {
-  const code = req.query.code;  // Extract the authorization code from the query string
+  const code = req.query.code;
 
   try {
-    // Exchange the authorization code for tokens
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
     console.log('Google Drive authenticated successfully!');

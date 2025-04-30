@@ -46,19 +46,19 @@ const getGig = async (req, res) => {
 
   const finalFilter = { accepted: true, };
   if (name !== undefined && name !== null && name !== "") {
-    filter.name = { $regex: name, $options: "i" };
+    finalFilter.name = { $regex: name, $options: "i" };
   }
   if (category && category.length > 0) {
-    filter.category = { $in: category };
+    finalFilter.category = { $in: category };
   }
   if (minPrice !== undefined && maxPrice !== undefined) {
-    filter["packages.price"] = { $gte: minPrice, $lte: maxPrice };
+    finalFilter["packages.price"] = { $gte: minPrice, $lte: maxPrice };
   }
   if (rating !== undefined && rating !== null) {
-    filter.rating = { $gte: rating };
+    finalFilter.rating = { $gte: rating };
   }
   try {
-    const gigList = await Gig.find(filter).select("_id image name packaes.price rating sold");
+    const gigList = await Gig.find(finalFilter).select("_id image name packages.price rating sold");
     return res.status(200).json({ filteredGigs: gigList });
   }
   catch (err) {
