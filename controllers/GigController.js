@@ -59,6 +59,7 @@ const getGig = async (req, res) => {
   }
   try {
     const gigList = await Gig.find(finalFilter).select("_id image name packages.price rating sold");
+    console.log(finalFilter);
     return res.status(200).json({ filteredGigs: gigList });
   }
   catch (err) {

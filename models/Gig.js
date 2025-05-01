@@ -91,6 +91,9 @@ const gigSchema = new mongoose.Schema({
   sold : {
     type: Number,
     default: 0
+  },
+  favoritedBy: {
+    type: [String],
   }
 },
   { versionKey: false }
