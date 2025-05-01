@@ -40,7 +40,7 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, remember } = req.body;
 
     // Validasi input
     if (!email || !password) {
@@ -61,16 +61,22 @@ const login = async (req, res) => {
 
     const loggedUser = {
       id: user._id,
+      access: user.access,
+      joinedDate: user.joinedDate,
+      location: user.location,
+      picture: user.picture,
       name: user.name,
       email: user.email,
       rating: user.rating,
-      completes: user.completes
+      completes: user.completes,
+      reviews: user.reviews,
+      type: user.type
     }
 
     // Buat token JWT
     const token = jwt.sign(loggedUser, process.env.JWT_SECRET, { expiresIn: "1d" });
 
-    res.cookie("token", token, { httpOnly: true, secure: true, sameSite: "strict", maxAge: 24 * 60 * 60 * 1000 });
+    res.cookie("token", token, { httpOnly: true, secure: true, sameSite: "None", maxAge: 24 * 60 * 60 * 1000, path: "/" });
     console.log(token); //remove
     return res.status(200).json({ message: "Login berhasil!", token });
   } catch (err) {
