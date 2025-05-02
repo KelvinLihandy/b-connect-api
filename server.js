@@ -5,6 +5,7 @@ import gigRoute from "./routes/Gig.js";
 import userRoute from "./routes/User.js";
 import cors from "cors";
 import fs from "fs";
+import cookieParser from "cookie-parser";
 import { connectMongo, connectDrive, oauth2Client } from "./config/db.js";
 
 dotenv.config();
@@ -17,8 +18,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-
-// Middleware
+app.use(cookieParser());
 app.use(express.json());
 
 // Routes

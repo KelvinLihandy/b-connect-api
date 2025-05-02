@@ -74,16 +74,25 @@ const login = async (req, res) => {
     }
 
     // Buat token JWT
-    const token = jwt.sign(loggedUser, process.env.JWT_SECRET, { expiresIn: "1d" });
+    const token = jwt.sign(loggedUser, process.env.JWT_SECRET, { expiresIn: remember ? "30d" : "2h" });
 
-    res.cookie("token", token, { httpOnly: true, secure: true, sameSite: "None", maxAge: 24 * 60 * 60 * 1000, path: "/" });
-    console.log(token); //remove
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "None",
+      maxAge: remember ? 30 * 24 * 60 * 60 * 1000 : undefined,
+      path: "/"
+    });
     return res.status(200).json({ message: "Login berhasil!", token });
   } catch (err) {
     console.error("🔥 Error:", err);
     return res.status(500).json({ error: "Terjadi kesalahan pada server." });
   }
 };
+
+const getAuth = async (req, res) => {
+  return res.status(200).json({ message: "Authenticated", auth: req.user });
+}
 
 const sendOTP = async (req, res) => {
   const { email } = req.body;
@@ -212,7 +221,7 @@ const resendOTP = async (req, res) => {
 
 const changePassword = async (req, res) => {
   const { email, password, passwordConf } = req.body;
-  
+
   const validToken = req.token;
   console.log(validToken);
   const user = await User.findOne({ email });
@@ -242,4 +251,4 @@ const changePassword = async (req, res) => {
   }
 }
 
-export { login, register, changePassword, sendOTP, resendOTP, verifyOtp };
+export { login, register, getAuth, changePassword, sendOTP, resendOTP, verifyOtp };
