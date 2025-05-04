@@ -1,6 +1,6 @@
 import { upload } from "../config/multer.js";
 import User from "../models/User.js";
-import { uploadSingleImage } from "./DriveController.js";
+import { uploadSingleImage } from "../utils/DriveUtil.js";
 
 const getTrendingUsers = async (req, res) => {
   try {
@@ -38,5 +38,21 @@ const uploadProfilePicture = [
   }
 ];
 
+const getUserInRooms = async (senderId, roomList) => {
+  try {
+    return await Promise.all(
+      roomList.map(async (room) => {
+        const receiverId = room.users.find(id => id !== senderId);
+        const receiver = await User.findById(receiverId);
+        return receiver;
+      })
+    );
+  }
+  catch (err) {
+    console.error("🔥 Gagal get user by id");
+    throw new Error("Gagal get user by id");
+  }
+}
 
-export { uploadProfilePicture, getTrendingUsers }
+
+export { uploadProfilePicture, getTrendingUsers, getUserInRooms }

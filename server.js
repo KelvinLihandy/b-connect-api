@@ -5,15 +5,31 @@ import gigRoute from "./routes/Gig.js";
 import userRoute from "./routes/User.js";
 import cors from "cors";
 import fs from "fs";
+import http from "http";
 import cookieParser from "cookie-parser";
+import { Server } from "socket.io";
 import { connectMongo, connectDrive, oauth2Client } from "./config/db.js";
+import { createRoom, getAllMessages, getRooms, saveTextMessage } from "./controllers/ChatController.js";
+import { getUserInRooms } from "./controllers/UserController.js";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174'
+];
+
 const corsOptions = {
-  origin: 'http://localhost:5173',
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 };
 
@@ -51,14 +67,54 @@ app.get('/oauth2callback', async (req, res) => {
   }
 });
 
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: corsOptions
+});
+
 (async () => {
   try {
     await connectMongo();
     await connectDrive();
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
     });
   } catch (err) {
     console.error("❌ Error starting server:", err);
   }
 })();
+
+io.on("connection", (socket) => {
+  console.log("enter", socket.id);
+
+  socket.on("create_room", async (userIds) => {
+    await createRoom(userIds);
+  })
+
+  socket.on("get_rooms", async (userId) => {
+    const roomList = await getRooms(userId);
+    const userList = await getUserInRooms(userId, roomList);
+    socket.emit("receive_rooms", {
+      roomList,
+      userList
+    });
+  });
+
+  socket.on("join_room", async (roomId) => {
+    socket.join(roomId);
+    console.log("user id", socket.id, "join room", roomId);
+    const messageList = await getAllMessages(roomId);
+    socket.emit("receive_message", messageList); 
+  });
+
+  socket.on("send_message", async (data) => {
+    await saveTextMessage(data);
+    const messageList = await getAllMessages(data.roomId);
+    console.log(messageList);
+    io.to(data.roomId).emit("receive_message", messageList);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("leave", socket.id)
+  })
+})

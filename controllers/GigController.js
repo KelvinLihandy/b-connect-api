@@ -1,6 +1,6 @@
 import { upload } from "../config/multer.js";
 import Gig from "../models/Gig.js";
-import { uploadMultipleImage } from "./DriveController.js";
+import { uploadMultipleImage } from "../utils/DriveUtil.js";
 import dotenv from "dotenv";
 
 dotenv.config();
