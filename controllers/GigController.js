@@ -1,6 +1,6 @@
 import { upload } from "../config/multer.js";
 import Gig from "../models/Gig.js";
-import { uploadMultipleImage } from "../utils/DriveUtil.js";
+import { uploadMultiple } from "../utils/DriveUtil.js";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -26,10 +26,10 @@ const createGig = [
         images: ["temp"],
       };
       const newGig = await Gig.create(gigData);
-      const links = await uploadMultipleImage(gigImages, newGig._id, process.env.DRIVE_GIGIMAGE_ID);
+      const imageIds = await uploadMultiple(gigImages, newGig.id, process.env.DRIVE_GIGIMAGE_ID);
       const imagedGig = await Gig.findOneAndUpdate(
-        newGig._id,
-        { $set: { images: links } },
+        { _id: newGig._id },
+        { $set: { images: imageIds } },
         { new: true }
       );
       if (!imagedGig) return res.status(400).json({ error: "Gig id tidak ditemukan" });
@@ -72,8 +72,8 @@ const getGigDetails = async (req, res) => {
   const { gigId } = req.params;
   try {
     const gig = await Gig.findOne({ _id: gigId });
-    if(!gig) return res.status(400).json({error: `Tidak ada gig dengan id ${gigId}`});
-    return res.status(200).json({message: `Gig ditemukan ${gig}`})
+    if (!gig) return res.status(400).json({ error: `Tidak ada gig dengan id ${gigId}` });
+    return res.status(200).json({ message: `Gig ditemukan ${gig}` })
   } catch (err) {
 
   }

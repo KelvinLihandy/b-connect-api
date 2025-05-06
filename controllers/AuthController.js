@@ -11,23 +11,16 @@ const register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    // Validasi input
     if (!name || !email || !password) {
       return res.status(400).json({ error: "Semua field harus diisi!" });
     }
-
-    // Validasi panjang password
     if (password.length < 8) {
       return res.status(400).json({ error: "Password minimal 8 karakter!" });
     }
-
-    // Cek apakah email sudah terdaftar
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ error: "Email sudah digunakan!" });
     }
-
-    // Simpan user baru
     const newUser = new User({ name, email, password });
     await newUser.save();
 
@@ -42,23 +35,17 @@ const login = async (req, res) => {
   try {
     const { email, password, remember } = req.body;
 
-    // Validasi input
     if (!email || !password) {
       return res.status(400).json({ error: "Email dan password harus diisi!" });
     }
-
-    // Cek user di database
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ error: "User tidak ditemukan!" });
     }
-
-    // Verifikasi password
     const isMatch = await verifyHash(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ error: "Password salah!" });
     }
-
     const loggedUser = {
       id: user._id,
       access: user.access,
@@ -72,10 +59,7 @@ const login = async (req, res) => {
       reviews: user.reviews,
       type: user.type
     }
-
-    // Buat token JWT
     const token = jwt.sign(loggedUser, process.env.JWT_SECRET, { expiresIn: remember ? "30d" : "2h" });
-
     res.cookie("token", token, {
       httpOnly: true,
       secure: true,
@@ -83,6 +67,7 @@ const login = async (req, res) => {
       maxAge: remember ? 30 * 24 * 60 * 60 * 1000 : undefined,
       path: "/"
     });
+
     return res.status(200).json({ message: "Login berhasil!", token });
   } catch (err) {
     console.error("🔥 Error:", err);
@@ -244,6 +229,7 @@ const changePassword = async (req, res) => {
       { $set: { password: await hashing(passwordConf) } },
       { new: true }
     );
+    
     return res.status(200).json({ message: "Password berhasil diubah." })
   } catch (err) {
     console.error("🔥 Error mengganti password:", err);

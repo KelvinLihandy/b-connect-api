@@ -1,7 +1,7 @@
 import fs from "fs";
 import { drive } from "../config/db.js";
 
-const uploadSingleImage = async (file, folderName, parentFolderId) => {
+const uploadSingle = async (file, folderName, parentFolderId) => {
   const folderQuery = `mimeType='application/vnd.google-apps.folder' and trashed=false and name='${folderName}' and '${parentFolderId}' in parents`;
   const folderList = await drive.files.list({
     q: folderQuery,
@@ -14,7 +14,7 @@ const uploadSingleImage = async (file, folderName, parentFolderId) => {
     const folderMetadata = {
       name: folderName,
       mimeType: "application/vnd.google-apps.folder",
-      parents: [process.env.DRIVE_PROFILEPIC_ID],
+      parents: [parentFolderId],
     };
     const folder = await drive.files.create({
       resource: folderMetadata,
@@ -39,11 +39,11 @@ const uploadSingleImage = async (file, folderName, parentFolderId) => {
   });
 
   fs.unlinkSync(file.path);
-  return `https://drive.google.com/thumbnail?id=${driveFile.data.id}`; 
+  return driveFile.data.id; 
 }
 
-const uploadMultipleImage = async (files, folderName, parentFolderId) => {
-  const uploadedFileLinks = [];
+const uploadMultiple = async (files, folderName, parentFolderId) => {
+  const uploadedFileIds = [];
 
   const folderQuery = `mimeType='application/vnd.google-apps.folder' and trashed=false and name='${folderName}' and '${parentFolderId}' in parents`;
   const folderList = await drive.files.list({
@@ -83,13 +83,12 @@ const uploadMultipleImage = async (files, folderName, parentFolderId) => {
       media,
       fields: 'id, name',
     });
-    const fileUrl = `https://drive.google.com/thumbnail?id=${driveFile.data.id}`;
-    uploadedFileLinks.push(fileUrl);
+    uploadedFileIds.push(driveFile.data.id);
 
     fs.unlinkSync(file.path);
   }
 
-  return uploadedFileLinks;
+  return uploadedFileIds;
 };
 
-export { uploadSingleImage, uploadMultipleImage };
+export { uploadSingle, uploadMultiple };

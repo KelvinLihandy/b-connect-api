@@ -1,6 +1,6 @@
 import { upload } from "../config/multer.js";
 import User from "../models/User.js";
-import { uploadSingleImage } from "../utils/DriveUtil.js";
+import { uploadSingle } from "../utils/DriveUtil.js";
 
 const getTrendingUsers = async (req, res) => {
   try {
@@ -22,13 +22,14 @@ const uploadProfilePicture = [
 
     if (!profileImage) return res.status(400).json({ error: "Error file pp tidak masuk" });
     try {
-      const link = await uploadSingleImage(profileImage, userId, process.env.DRIVE_PROFILEPIC_ID);
+      const pictureId = await uploadSingle(profileImage, userId, process.env.DRIVE_PROFILEPIC_ID);
       const updatedUser = await User.findByIdAndUpdate(
         userId,
-        { $set: { picture: link } },
+        { $set: { picture: pictureId } },
         { new: true }
       );
       if (!updatedUser) return res.status(400).json({ error: "User id tidak ditemukan" });
+      
       return res.status(200).json({ message: `Update pp sukses ke id ${userId}` })
     }
     catch (err) {

@@ -12,7 +12,7 @@ const messageSchema = new mongoose.Schema({
   },
   content: {
     type: String,
-    required: true,
+    required: false,
   },
   iv: {
     type: String,
@@ -36,7 +36,6 @@ messageSchema.pre("save", async function (next) {
   const { encrypted, iv } = cryptoEncrypt(this.content);
   this.content = encrypted;
   this.iv = iv;
-  // console.log(encrypted, iv);
   next();
 });
 

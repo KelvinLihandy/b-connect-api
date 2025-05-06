@@ -37,12 +37,11 @@ const getStoredTokens = () => {
 
 const connectDrive = async () => {
   try {
-    const tokens = await getStoredTokens(); // Load the stored tokens (if any)
+    const tokens = await getStoredTokens();
     if (tokens) {
       oauth2Client.setCredentials(tokens);
       console.log('✅ Google Drive authenticated');
     } else {
-      // Token has not been stored, perform the initial OAuth flow
       const authUrl = oauth2Client.generateAuthUrl({
         access_type: 'offline',
         scope: ['https://www.googleapis.com/auth/drive'],
