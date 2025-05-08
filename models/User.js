@@ -35,6 +35,14 @@ const userSchema = new mongoose.Schema({
     required: true,
     minlength: 8
   },
+  phone: {
+    type: String,
+    default: ""
+  },
+  paymentNumber: {
+    type: String,
+    default: ""
+  },
   rating: {
     type: Number,
     default: 0

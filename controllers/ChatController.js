@@ -35,10 +35,10 @@ const handleSocket = (socket, io) => {
     socket.emit("receive_message", messageList);
   });
 
-    socket.on("get_file_data", async (request) => {
-      const fileData = await getFileData(request.fileId)
-      socket.emit("receive_file_data", fileData);
-    })
+  socket.on("get_file_data", async (request) => {
+    const fileData = await getFileData(request.fileId)
+    socket.emit("receive_file_data", fileData);
+  })
 
   socket.on("send_message", async (data) => {
     await saveTextMessage(data);
@@ -86,7 +86,7 @@ const saveFileMessage = [
       };
       await Message.create(newMessageData);
       const messageList = await getAllMessages(roomId);
-      console.log(messageList);
+      console.log(newMessageData);
       ioPass.to(roomId).emit("receive_message", messageList);
 
       return res.status(200).json({ message: `save file message sukses dengan id ${fileId}`, newMessageData })

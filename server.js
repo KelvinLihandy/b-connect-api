@@ -10,9 +10,7 @@ import http from "http";
 import cookieParser from "cookie-parser";
 import { Server } from "socket.io";
 import { connectMongo, connectDrive, oauth2Client } from "./config/db.js";
-import { createRoom, getAllMessages, getFileData, getRooms, handleSocket, saveFileMessage, saveTextMessage } from "./controllers/ChatController.js";
-import { getUserInRooms } from "./controllers/UserController.js";
-
+import { handleSocket } from "./controllers/ChatController.js";
 dotenv.config();
 
 const app = express();
