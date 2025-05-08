@@ -63,19 +63,21 @@ const getGig = async (req, res) => {
     return res.status(200).json({ filteredGigs: gigList });
   }
   catch (err) {
-    console.error("🔥 Error saat mencari gig:", error);
+    console.error("🔥 Error saat mencari gig:", err);
     return res.status(500).json({ error: "Gagal mencari gig." });
   }
 };
 
 const getGigDetails = async (req, res) => {
   const { gigId } = req.params;
+  
   try {
     const gig = await Gig.findOne({ _id: gigId });
     if (!gig) return res.status(400).json({ error: `Tidak ada gig dengan id ${gigId}` });
-    return res.status(200).json({ message: `Gig ditemukan ${gig}` })
+    return res.status(200).json({ detail: gig })
   } catch (err) {
-
+    console.error("🔥 Error saat mencari detail gig:", err);
+    return res.status(500).json({ error: "Gagal mencari detail gig." });
   }
 }
 

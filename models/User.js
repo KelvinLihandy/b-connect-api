@@ -19,6 +19,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: "temp"
   },
+  description: {
+    type: String,
+    default: ""
+  },
   name: {
     type: String,
     required: true,

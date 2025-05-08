@@ -19,7 +19,7 @@ const PackageSchema = new mongoose.Schema({
     required: true
   },
   deliveryDay: {
-    type: String,
+    type: Number,
     required: true
   },
   revision: {
@@ -29,6 +29,20 @@ const PackageSchema = new mongoose.Schema({
   features: {
     type: [String],
     required: true
+  }
+},
+  { _id: false },
+  { versionKey: false }
+);
+
+const workflowSchema = new mongoose.Schema({
+  flow: {
+    type: String,
+    required: true
+  },
+  description: {
+    type: String,
+    default: ""
   }
 },
   { _id: false },
@@ -54,9 +68,9 @@ const gigSchema = new mongoose.Schema({
     required: false,
     validate: {
       validator: function (val) {
-        return Array.isArray(val) && val.length >= 1 && val.length <= 3;
+        return Array.isArray(val) && val.length >= 1 && val.length <= 5;
       },
-      message: 'Gambar ada 1 - 3'
+      message: 'Gambar ada 1 - 5'
     }
   },
   description: {
@@ -73,7 +87,7 @@ const gigSchema = new mongoose.Schema({
     default: Date.now
   },
   workflow: {
-    type: String,
+    type: [workflowSchema],
     required: true
   },
   rating: {
@@ -87,8 +101,8 @@ const gigSchema = new mongoose.Schema({
   reviewCount: {
     type: Number,
     default: 0
-  },
-  sold : {
+  },//ini bisa pake cek panjang review yang id produk sama dan tipe review gig atau produkk lah intinya
+  sold: {
     type: Number,
     default: 0
   },

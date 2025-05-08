@@ -29,7 +29,7 @@ const uploadProfilePicture = [
         { new: true }
       );
       if (!updatedUser) return res.status(400).json({ error: "User id tidak ditemukan" });
-      
+
       return res.status(200).json({ message: `Update pp sukses ke id ${userId}` })
     }
     catch (err) {
@@ -55,5 +55,19 @@ const getUserInRooms = async (senderId, roomList) => {
   }
 }
 
+const getUser = async (req, res) => {
+  const { userId } = req.params;
 
-export { uploadProfilePicture, getTrendingUsers, getUserInRooms }
+  try {
+    const singleUser = await User.findOne({ _id: userId });
+    if (!singleUser) return res.status(400).json({ error: "id user tidak ditemukan" });
+    return res.status(200).json({ user: singleUser })
+  }
+  catch (err) {
+    console.error("🔥 Error cari user:", err);
+    return res.status(500).json({ error: "error cari user" });
+  }
+}
+
+
+export { uploadProfilePicture, getTrendingUsers, getUserInRooms, getUser }

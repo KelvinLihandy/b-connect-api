@@ -112,11 +112,12 @@ const getAllMessages = async (roomId) => {
 
 const createRoom = async (userIds) => {
   try {
-    const newRoom = new Room({
-      users: [userIds[0], userIds[1]],
-    });
+    const sortedIds = userIds.sort();
+    let existingRoom = await Room.findOne({ users: { $all: sortedIds, $size: 2 } });
+    if (existingRoom) return existingRoom;
+    const newRoom = new Room({ users: sortedIds });
     await newRoom.save();
-    return newRoom;
+    // return newRoom;
   } catch (error) {
     console.log("🔥 Gagal create room", error);
     throw new Error("Gagal create room");
@@ -125,7 +126,7 @@ const createRoom = async (userIds) => {
 
 const getRooms = async (userId) => {
   try {
-    const roomList = await Room.find({ users: userId });
+    const roomList = await Room.find({ users: userId }).sort({ createdDate: -1 });
     return roomList;
   } catch (error) {
     console.log("🔥 Gagal get room", error);
