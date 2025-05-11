@@ -10,7 +10,8 @@ import http from "http";
 import cookieParser from "cookie-parser";
 import { Server } from "socket.io";
 import { connectMongo, connectDrive, oauth2Client } from "./config/db.js";
-import { handleSocket } from "./controllers/ChatController.js";
+import { handleSocketChat } from "./controllers/ChatController.js";
+import { handleSocketNotification } from "./controllers/NotificationController.js";
 dotenv.config();
 
 const app = express();
@@ -86,5 +87,12 @@ app.get('/oauth2callback', async (req, res) => {
 })();
 
 io.on("connection", (socket) => {
-  handleSocket(socket, io);
+  console.log("enter", socket.id);
+
+  handleSocketChat(socket, io);
+  handleSocketNotification(socket, io);
+
+  socket.on("disconnect", () => {
+    console.log("leave", socket.id);
+  });
 })

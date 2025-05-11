@@ -11,7 +11,7 @@ dotenv.config();
 
 let ioPass;
 
-const handleSocket = (socket, io) => {
+const handleSocketChat = (socket, io) => {
   ioPass = io;
   console.log("enter", socket.id);
 
@@ -31,9 +31,13 @@ const handleSocket = (socket, io) => {
   socket.on("join_room", async (roomId) => {
     socket.join(roomId);
     console.log("user id", socket.id, "join room", roomId);
-    const messageList = await getAllMessages(roomId);
-    socket.emit("receive_message", messageList);
+    socket.emit("switch_room", `/chat/${roomId}`);
   });
+
+  socket.on("get_room_message", async (roomId) => {
+    const messageList = await getAllMessages(roomId);
+    io.to(roomId).emit("receive_message", messageList);
+  })
 
   socket.on("get_file_data", async (request) => {
     const fileData = await getFileData(request.fileId)
@@ -61,6 +65,7 @@ const saveTextMessage = async (message) => {
       type: message.type
     });
     await newMessage.save();
+    console.log("new", message)
     return newMessage;
   } catch (error) {
     console.error("🔥 Gagal save:", error);
@@ -167,4 +172,4 @@ const getFileData = async (fileId) => {
   }
 };
 
-export { handleSocket, saveTextMessage, saveFileMessage, getAllMessages, createRoom, getRooms, getFileData };
+export { handleSocketChat, saveTextMessage, saveFileMessage, getAllMessages, createRoom, getRooms, getFileData };
