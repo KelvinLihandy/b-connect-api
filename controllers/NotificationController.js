@@ -12,32 +12,44 @@ import Message from "../models/Message.js";
 dotenv.config();
 
 let ioPass;
+let socketMap;
 //socket buat bulet merah, service worker buat push
-const handleSocketNotification = (socket, io) => {
+const handleSocketNotification = (socket, io, userSocketMap) => {
   ioPass = io;
+  socketMap = userSocketMap;
 
-  socket.on("refresh_notification", () => {
-    getAllNotificationsWithData()
+  socket.on("retrieve_notifications", (receiverid) => {
+    getAllNotificationsWithData(receiverid, socket)
   });
 
   socket.on("view_notification", (notification) => {
-    redirectNotification(notification);
+    redirectNotification(notification, socket);
+  });
+
+  socket.on("read_all_notification", (userId) => {
+    readAllNotification(userId, socket);
   })
 
-  socket.on("send_notification", async () => {
+  // socket.on("send_notification",);
+
+  socket.on("push_notification", async () => {
     //pake service worker
+
   });
 };
 
-const getAllNotificationsWithData = async (receiverId) => {
+const getAllNotificationsWithData = async (receiverId, socket) => {
   try {
-    const notifications = await Notification.find({ receiverId });
-    const notificationsData= await Promise.all(
+    const notifications = await Notification.find({ receiverId }).sort({ createdAt: -1 });
+    console.log("notifs", notifications, "for", receiverId);
+    const notificationsData = await Promise.all(
       notifications.map(async (notification) => {
         let sender = null;
         let roomId = null;
+        let message = null;
         if (notification.messageType === "chat" && notification.messageId) {
-          const message = await Message.findById(notification.messageId)
+          message = await Message.findById(notification.messageId);
+          message.content = cryptoDecrypt(message.content, message.iv);
           roomId = message.roomId;
           sender = await User.findById(message.senderId).select("_id picture name");
         } else {
@@ -49,6 +61,8 @@ const getAllNotificationsWithData = async (receiverId) => {
         }
         return {
           ...notification.toObject(),
+          messageId: undefined,
+          message,
           sender,
           roomId,
         };
@@ -61,14 +75,49 @@ const getAllNotificationsWithData = async (receiverId) => {
   }
 }
 
-const redirectNotification = async (notification) => {//pass yang dari getnotifwithdata
+const redirectNotification = async (notification, socket) => {
   if (notification.roomId) {
     await Notification.updateOne(
-      { _id: notification.id },
-      { read: true, readAt: new Date() }
+      { _id: notification._id },
+      { read: true, readAt: new Date() },
+      { new: true }
     );
-    
+    const url = `/chat/${notification.message.roomId}`;
+    socket.emit("redirect_notification", url);
   }
 }
 
-export { handleSocketNotification };
+const sendNotification = async (data) => {
+  if (data.roomId) {//chat type
+    const room = await Room.findById(data.roomId);
+    const receiverId = room.users.find(id => id !== data.senderId);
+    const notification = {
+      receiverId,
+      messageId: data._id,
+      messageType: "chat",
+    }
+    const newNotification = await Notification.create(notification);
+    newNotification.save();
+    const socketId = socketMap ? socketMap[receiverId] : null;
+    if (socketId) {
+      ioPass.to(socketId).emit('receive_notifications', newNotification);
+      console.log(`Notifikasi terkirim ke id ${receiverId}`);
+    }
+    else console.log(`User ${receiverId} tidak online`);
+  }
+}
+
+const readAllNotification = async (userId) => {
+  const notifications = await Notification.find({ receiverId: userId });
+  await Promise.all(
+    notifications.map((n) =>
+      Notification.findByIdAndUpdate(
+        n._id,
+        { read: true, readAt: new Date() },
+        { new: true })
+    )
+  );
+  await getAllNotificationsWithData(userId, socket);
+}
+
+export { handleSocketNotification, sendNotification };

@@ -12,6 +12,7 @@ import { Server } from "socket.io";
 import { connectMongo, connectDrive, oauth2Client } from "./config/db.js";
 import { handleSocketChat } from "./controllers/ChatController.js";
 import { handleSocketNotification } from "./controllers/NotificationController.js";
+import PushNotifications from "node-pushnotifications";
 dotenv.config();
 
 const app = express();
@@ -32,6 +33,20 @@ const corsOptions = {
   },
   credentials: true
 };
+
+const settings = {
+  web: {
+    vapidDetails: {
+      subject: `mailto: <${process.env.APP_USER}>`,
+      publicKey: process.env.PUBLIC_VAPID,
+      privateKey: process.env.PRIVATE_VAPID,
+    },
+    TTL: 60,
+    contentEncoding: 'aes128gcm',
+  },
+};
+
+const push = new PushNotifications(settings);
 
 app.use(cors(corsOptions));
 app.use(cookieParser());
@@ -86,13 +101,25 @@ app.get('/oauth2callback', async (req, res) => {
   }
 })();
 
+const userSocketMap = {};
+
 io.on("connection", (socket) => {
   console.log("enter", socket.id);
-
+  socket.on("login", (userId) => {
+    userSocketMap[userId] = socket.id;
+    console.log("map", userSocketMap);
+  })
   handleSocketChat(socket, io);
-  handleSocketNotification(socket, io);
+  handleSocketNotification(socket, io, userSocketMap);
 
   socket.on("disconnect", () => {
     console.log("leave", socket.id);
+    for (let userId in userSocketMap) {
+      if (userSocketMap[userId] === socket.id) {
+        console.log(`User with ID: ${userId} disconnected`);
+        delete userSocketMap[userId];
+        break;
+      }
+    }
   });
 })
