@@ -41,7 +41,6 @@ const handleSocketNotification = (socket, io, userSocketMap) => {
 const getAllNotificationsWithData = async (receiverId, socket) => {
   try {
     const notifications = await Notification.find({ receiverId }).sort({ createdAt: -1 });
-    console.log("notifs", notifications, "for", receiverId);
     const notificationsData = await Promise.all(
       notifications.map(async (notification) => {
         let sender = null;
@@ -107,7 +106,7 @@ const sendNotification = async (data) => {
   }
 }
 
-const readAllNotification = async (userId) => {
+const readAllNotification = async (userId, socket) => {
   const notifications = await Notification.find({ receiverId: userId });
   await Promise.all(
     notifications.map((n) =>

@@ -17,7 +17,7 @@ const handleSocketChat = (socket, io) => {
   console.log("enter", socket.id);
 
   socket.on("create_room", async (userIds) => {
-    await createRoom(userIds);
+    await createRoom(userIds, socket);
   });
 
   socket.on("get_rooms", async (userId) => {
@@ -36,8 +36,10 @@ const handleSocketChat = (socket, io) => {
   });
 
   socket.on("get_room_message", async (roomId) => {
+    socket.join(roomId);
     const messageList = await getAllMessages(roomId);
     io.to(roomId).emit("receive_message", messageList);
+    console.log("message for room", roomId, messageList)
   })
 
   socket.on("get_file_data", async (request) => {
@@ -116,14 +118,17 @@ const getAllMessages = async (roomId) => {
   }
 }
 
-const createRoom = async (userIds) => {
+const createRoom = async (userIds, socket) => {
   try {
     const sortedIds = userIds.sort();
     let existingRoom = await Room.findOne({ users: { $all: sortedIds, $size: 2 } });
-    if (existingRoom) return existingRoom;
+    if (existingRoom) {
+      socket.emit("switch_room", `/chat/${existingRoom._id}`);
+      return;
+    }
     const newRoom = new Room({ users: sortedIds });
     await newRoom.save();
-    // return newRoom;
+    socket.emit("switch_room", `/chat/${newRoom._id}`);
   } catch (error) {
     console.log("🔥 Gagal create room", error);
     throw new Error("Gagal create room");
