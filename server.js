@@ -12,7 +12,8 @@ import { Server } from "socket.io";
 import { connectMongo, connectDrive, oauth2Client } from "./config/db.js";
 import { handleSocketChat } from "./controllers/ChatController.js";
 import { handleSocketNotification } from "./controllers/NotificationController.js";
-import PushNotifications from "node-pushnotifications";
+import { handleSocketGig } from "./controllers/GigController.js";
+// import PushNotifications from "node-pushnotifications";
 dotenv.config();
 
 const app = express();
@@ -34,19 +35,19 @@ const corsOptions = {
   credentials: true
 };
 
-const settings = {
-  web: {
-    vapidDetails: {
-      subject: `mailto: <${process.env.APP_USER}>`,
-      publicKey: process.env.PUBLIC_VAPID,
-      privateKey: process.env.PRIVATE_VAPID,
-    },
-    TTL: 60,
-    contentEncoding: 'aes128gcm',
-  },
-};
+// const settings = {
+//   web: {
+//     vapidDetails: {
+//       subject: `mailto: <${process.env.APP_USER}>`,
+//       publicKey: process.env.PUBLIC_VAPID,
+//       privateKey: process.env.PRIVATE_VAPID,
+//     },
+//     TTL: 60,
+//     contentEncoding: 'aes128gcm',
+//   },
+// };
 
-const push = new PushNotifications(settings);
+// const push = new PushNotifications(settings);
 
 app.use(cors(corsOptions));
 app.use(cookieParser());
@@ -69,10 +70,24 @@ app.get("/", (req, res) => {
   res.send("API is running...");
 });
 
-
 const storeTokens = (tokens) => {
   fs.writeFileSync('tokens.json', JSON.stringify(tokens));
 };
+
+// function getAccessToken() {
+//   const authUrl = oAuth2Client.generateAuthUrl({
+//     access_type: 'offline', // ensures refresh_token is returned
+//     prompt: 'consent',       // force refresh_token every time
+//     scope: ['https://www.googleapis.com/auth/drive.file'],
+//   });
+
+// fs.readFile(TOKEN_PATH, async (err, token) => {
+//   if (err) {
+//     getAccessToken();
+//   } else {
+//     oAuth2Client.setCredentials(JSON.parse(token));
+//   }
+// });
 
 app.get('/oauth2callback', async (req, res) => {
   const code = req.query.code;
@@ -111,6 +126,7 @@ io.on("connection", (socket) => {
   })
   handleSocketChat(socket, io);
   handleSocketNotification(socket, io, userSocketMap);
+  handleSocketGig(socket, io);
 
   socket.on("disconnect", () => {
     console.log("leave", socket.id);

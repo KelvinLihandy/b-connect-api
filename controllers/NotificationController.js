@@ -13,7 +13,7 @@ dotenv.config();
 
 let ioPass;
 let socketMap;
-//socket buat bulet merah, service worker buat push
+
 const handleSocketNotification = (socket, io, userSocketMap) => {
   ioPass = io;
   socketMap = userSocketMap;
@@ -29,18 +29,11 @@ const handleSocketNotification = (socket, io, userSocketMap) => {
   socket.on("read_all_notification", (userId) => {
     readAllNotification(userId, socket);
   })
-
-  // socket.on("send_notification",);
-
-  socket.on("push_notification", async () => {
-    //pake service worker
-
-  });
 };
 
 const getAllNotificationsWithData = async (receiverId, socket) => {
   try {
-    const notifications = await Notification.find({ receiverId }).sort({ createdAt: -1 });
+    const notifications = await Notification.find({ receiverId }).sort({ receivedTime: 1 });
     const notificationsData = await Promise.all(
       notifications.map(async (notification) => {
         let sender = null;
@@ -87,7 +80,7 @@ const redirectNotification = async (notification, socket) => {
 }
 
 const sendNotification = async (data) => {
-  if (data.roomId) {//chat type
+  if (data.roomId) {
     const room = await Room.findById(data.roomId);
     const receiverId = room.users.find(id => id !== data.senderId);
     const notification = {
