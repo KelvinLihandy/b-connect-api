@@ -6,7 +6,7 @@ const notificationSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  messageId: { //untuk chat
+  messageId: { //untuk chat jadi pas create masukin juga ke sini _id message abis kelar dibuat
     type: String,
   },
   messageType: {
@@ -16,11 +16,6 @@ const notificationSchema = new mongoose.Schema({
   },
   content: { //bukan chat
     type: String,
-  },
-  receivedTime: {
-    type: Date,
-    default: Date.now,
-    immutable: true
   },
   readAt: {
     type: Date,
@@ -38,9 +33,11 @@ const notificationSchema = new mongoose.Schema({
 notificationSchema.index({ readAt: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 7 });
 
 notificationSchema.pre("save", async function (next) {
-  const { encrypted, iv } = cryptoEncrypt(this.content);
-  this.content = encrypted;
-  this.iv = iv;
+  if(this.content){
+    const { encrypted, iv } = cryptoEncrypt(this.content);
+    this.content = encrypted;
+    this.iv = iv;
+  }
   next();
 });
 

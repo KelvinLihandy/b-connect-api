@@ -37,6 +37,20 @@ const corsOptions = {
   credentials: true
 };
 
+// const settings = {
+//   web: {
+//     vapidDetails: {
+//       subject: `mailto: <${process.env.APP_USER}>`,
+//       publicKey: process.env.PUBLIC_VAPID,
+//       privateKey: process.env.PRIVATE_VAPID,
+//     },
+//     TTL: 60,
+//     contentEncoding: 'aes128gcm',
+//   },
+// };
+
+// const push = new PushNotifications(settings);
+
 app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json());
@@ -58,10 +72,24 @@ app.get("/", (req, res) => {
   res.send("API is running...");
 });
 
-
 const storeTokens = (tokens) => {
   fs.writeFileSync('tokens.json', JSON.stringify(tokens));
 };
+
+// function getAccessToken() {
+//   const authUrl = oAuth2Client.generateAuthUrl({
+//     access_type: 'offline', // ensures refresh_token is returned
+//     prompt: 'consent',       // force refresh_token every time
+//     scope: ['https://www.googleapis.com/auth/drive.file'],
+//   });
+
+// fs.readFile(TOKEN_PATH, async (err, token) => {
+//   if (err) {
+//     getAccessToken();
+//   } else {
+//     oAuth2Client.setCredentials(JSON.parse(token));
+//   }
+// });
 
 app.get('/oauth2callback', async (req, res) => {
   const code = req.query.code;
@@ -90,13 +118,25 @@ app.get('/oauth2callback', async (req, res) => {
   }
 })();
 
+const userSocketMap = {};
+
 io.on("connection", (socket) => {
   console.log("enter", socket.id);
-
+  socket.on("login", (userId) => {
+    userSocketMap[userId] = socket.id;
+    console.log("map", userSocketMap);
+  })
   handleSocketChat(socket, io);
-  handleSocketNotification(socket, io);
+  handleSocketNotification(socket, io, userSocketMap);
 
   socket.on("disconnect", () => {
     console.log("leave", socket.id);
+    for (let userId in userSocketMap) {
+      if (userSocketMap[userId] === socket.id) {
+        console.log(`User with ID: ${userId} disconnected`);
+        delete userSocketMap[userId];
+        break;
+      }
+    }
   });
 })

@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { upload } from "../config/multer.js";
 import Gig from "../models/Gig.js";
 import { uploadMultiple } from "../utils/DriveUtil.js";
@@ -51,15 +52,28 @@ const getGig = async (req, res) => {
   if (category && category.length > 0) {
     finalFilter.category = { $in: category };
   }
-  if (minPrice !== undefined && maxPrice !== undefined) {
-    finalFilter["packages.price"] = { $gte: minPrice, $lte: maxPrice };
-  }
-  if (rating !== undefined && rating !== null) {
+  if (rating !== undefined && rating !== null && rating > 0) {
     finalFilter.rating = { $gte: rating };
   }
   try {
-    const gigList = await Gig.find(finalFilter).select("_id image name packages.price rating sold");
-    console.log(finalFilter);
+    let gigList = await Gig.find(finalFilter);
+    if (minPrice !== undefined && maxPrice !== undefined) {
+      const numMinPrice = Number(minPrice);
+      const numMaxPrice = Number(maxPrice);
+      console.log("nan test", numMaxPrice, numMinPrice);
+      if (!isNaN(numMinPrice) && !isNaN(numMaxPrice)) {
+        gigList = gigList.filter(gig => {
+          return gig.packages.every(pkg => {
+            const packagePrice = Number(pkg.price);
+            console.log("prc", packagePrice)
+            return !isNaN(packagePrice) &&
+              packagePrice >= numMinPrice &&
+              packagePrice <= numMaxPrice;
+          });
+        });
+      }
+      else return res.status(400).json({ messsage: "filter harga tidak angka semua" });
+    }
     return res.status(200).json({ filteredGigs: gigList });
   }
   catch (err) {
@@ -70,8 +84,9 @@ const getGig = async (req, res) => {
 
 const getGigDetails = async (req, res) => {
   const { gigId } = req.params;
-  
+
   try {
+    console.log(gigId)
     const gig = await Gig.findOne({ _id: gigId });
     if (!gig) return res.status(400).json({ error: `Tidak ada gig dengan id ${gigId}` });
     return res.status(200).json({ detail: gig })

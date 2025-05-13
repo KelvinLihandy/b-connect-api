@@ -54,22 +54,22 @@
 
   <script>
     document.querySelector('form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  
-  const formData = new FormData(e.target);
-  
-  try {
-    const response = await fetch('http://localhost:5000/api/user/update-user-profile', {
-      method: 'PATCH',
-      body: formData
+      e.preventDefault();
+      
+      const formData = new FormData(e.target);
+      
+      try {
+        const response = await fetch('http://localhost:5000/api/user/update-user-profile', {
+          method: 'PATCH',
+          body: formData
+        });
+        
+        const data = await response.json();
+        document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        document.getElementById('response').textContent = 'Error: ' + error.message;
+      }
     });
-    
-    const data = await response.json();
-    document.getElementById('response').textContent = JSON.stringify(data, null, 2);
-    } catch (error) {
-    document.getElementById('response').textContent = 'Error: ' + error.message;
-    }
-  });
   </script>
 </body>
 </html>

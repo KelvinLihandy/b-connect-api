@@ -4,6 +4,7 @@ import { verifyHash, hashing } from "../utils/HashUtils.js";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
+import { Socket } from "socket.io";
 
 dotenv.config()
 
@@ -11,8 +12,16 @@ const register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
+    const rfcEmailRegex = /^(?:[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}|(?:\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-zA-Z\-0-9]*[a-zA-Z0-9]:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f])\]))$/;
+    const regex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     if (!name || !email || !password) {
       return res.status(400).json({ error: "Semua field harus diisi!" });
+    }
+    if (!rfcEmailRegex.test(email)) {
+      return res.status(400).json({ error: "format email tidak valid!" });
+    }
+    if (!regex.test(password)) {
+      return res.status(400).json({ error: "format password tidak valid!" });
     }
     if (password.length < 8) {
       return res.status(400).json({ error: "Password minimal 8 karakter!" });
@@ -229,7 +238,7 @@ const changePassword = async (req, res) => {
       { $set: { password: await hashing(passwordConf) } },
       { new: true }
     );
-    
+
     return res.status(200).json({ message: "Password berhasil diubah." })
   } catch (err) {
     console.error("🔥 Error mengganti password:", err);

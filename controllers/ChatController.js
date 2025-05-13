@@ -6,6 +6,7 @@ import { drive } from "../config/db.js";
 import { uploadSingle } from "../utils/DriveUtil.js";
 import { upload } from "../config/multer.js";
 import { getUserInRooms } from "./UserController.js";
+import { sendNotification } from "./NotificationController.js";
 
 dotenv.config();
 
@@ -16,7 +17,7 @@ const handleSocketChat = (socket, io) => {
   console.log("enter", socket.id);
 
   socket.on("create_room", async (userIds) => {
-    await createRoom(userIds);
+    await createRoom(userIds, socket);
   });
 
   socket.on("get_rooms", async (userId) => {
@@ -35,8 +36,10 @@ const handleSocketChat = (socket, io) => {
   });
 
   socket.on("get_room_message", async (roomId) => {
+    socket.join(roomId);
     const messageList = await getAllMessages(roomId);
     io.to(roomId).emit("receive_message", messageList);
+    console.log("message for room", roomId, messageList)
   })
 
   socket.on("get_file_data", async (request) => {
@@ -47,7 +50,6 @@ const handleSocketChat = (socket, io) => {
   socket.on("send_message", async (data) => {
     await saveTextMessage(data);
     const messageList = await getAllMessages(data.roomId);
-    console.log(messageList);
     io.to(data.roomId).emit("receive_message", messageList);
   });
 
@@ -65,7 +67,7 @@ const saveTextMessage = async (message) => {
       type: message.type
     });
     await newMessage.save();
-    console.log("new", message)
+    await sendNotification(newMessage);
     return newMessage;
   } catch (error) {
     console.error("🔥 Gagal save:", error);
@@ -83,18 +85,19 @@ const saveFileMessage = [
     try {
       const fileId = await uploadSingle(messageFile, roomId, process.env.DRIVE_ROOM_ID);
       if (!fileId) return res.status(400).json({ error: "Failed to upload the file" });
-      const newMessageData = {
+      const newMessage = new Message({
         roomId: roomId,
         senderId: senderId,
         content: fileId,
         type: type
-      };
-      await Message.create(newMessageData);
+      });
+      await newMessage.save();
       const messageList = await getAllMessages(roomId);
-      console.log(newMessageData);
+      console.log(messageData);
+      await sendNotification(messageData);
       ioPass.to(roomId).emit("receive_message", messageList);
 
-      return res.status(200).json({ message: `save file message sukses dengan id ${fileId}`, newMessageData })
+      return res.status(200).json({ message: `save file message sukses dengan id ${fileId}`, messageData })
     } catch (error) {
       console.error("🔥 Gagal save file message:", error);
       return res.status(500).json({ error: "Gagal save file message" });
@@ -115,14 +118,17 @@ const getAllMessages = async (roomId) => {
   }
 }
 
-const createRoom = async (userIds) => {
+const createRoom = async (userIds, socket) => {
   try {
     const sortedIds = userIds.sort();
     let existingRoom = await Room.findOne({ users: { $all: sortedIds, $size: 2 } });
-    if (existingRoom) return existingRoom;
+    if (existingRoom) {
+      socket.emit("switch_room", `/chat/${existingRoom._id}`);
+      return;
+    }
     const newRoom = new Room({ users: sortedIds });
     await newRoom.save();
-    // return newRoom;
+    socket.emit("switch_room", `/chat/${newRoom._id}`);
   } catch (error) {
     console.log("🔥 Gagal create room", error);
     throw new Error("Gagal create room");
