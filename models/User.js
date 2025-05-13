@@ -62,6 +62,10 @@ const userSchema = new mongoose.Schema({
   type: {
     type: String,
     default: ""
+  },
+  phoneNumber: {
+    type: String,
+    default: ""
   }
 },
   { versionKey: false }
