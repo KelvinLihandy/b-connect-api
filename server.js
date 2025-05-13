@@ -12,8 +12,6 @@ import { Server } from "socket.io";
 import { connectMongo, connectDrive, oauth2Client } from "./config/db.js";
 import { handleSocketChat } from "./controllers/ChatController.js";
 import { handleSocketNotification } from "./controllers/NotificationController.js";
-import { handleSocketGig } from "./controllers/GigController.js";
-// import PushNotifications from "node-pushnotifications";
 dotenv.config();
 
 const app = express();
@@ -126,7 +124,6 @@ io.on("connection", (socket) => {
   })
   handleSocketChat(socket, io);
   handleSocketNotification(socket, io, userSocketMap);
-  handleSocketGig(socket, io);
 
   socket.on("disconnect", () => {
     console.log("leave", socket.id);
