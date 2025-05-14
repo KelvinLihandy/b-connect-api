@@ -12,6 +12,7 @@ import { Server } from "socket.io";
 import { connectMongo, connectDrive, oauth2Client } from "./config/db.js";
 import { handleSocketChat } from "./controllers/ChatController.js";
 import { handleSocketNotification } from "./controllers/NotificationController.js";
+import ngrok from '@ngrok/ngrok'
 dotenv.config();
 
 const app = express();
@@ -76,21 +77,6 @@ const storeTokens = (tokens) => {
   fs.writeFileSync('tokens.json', JSON.stringify(tokens));
 };
 
-// function getAccessToken() {
-//   const authUrl = oAuth2Client.generateAuthUrl({
-//     access_type: 'offline', // ensures refresh_token is returned
-//     prompt: 'consent',       // force refresh_token every time
-//     scope: ['https://www.googleapis.com/auth/drive.file'],
-//   });
-
-// fs.readFile(TOKEN_PATH, async (err, token) => {
-//   if (err) {
-//     getAccessToken();
-//   } else {
-//     oAuth2Client.setCredentials(JSON.parse(token));
-//   }
-// });
-
 app.get('/oauth2callback', async (req, res) => {
   const code = req.query.code;
 
@@ -110,8 +96,10 @@ app.get('/oauth2callback', async (req, res) => {
   try {
     await connectMongo();
     await connectDrive();
+    const ngrokUrl = await ngrok.forward({ addr: PORT, authtoken_from_env: true });
     server.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
+      console.log("ngrok", ngrokUrl.url());
     });
   } catch (err) {
     console.error("❌ Error starting server:", err);
@@ -128,7 +116,7 @@ io.on("connection", (socket) => {
   })
   handleSocketChat(socket, io);
   handleSocketNotification(socket, io, userSocketMap);
-
+  console.log(userSocketMap);
   socket.on("disconnect", () => {
     console.log("leave", socket.id);
     for (let userId in userSocketMap) {
