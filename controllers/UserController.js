@@ -215,4 +215,29 @@ const changePassword = async (req, res) => {
   }
 }
 
-export { getTrendingUsers, getUserInRooms, getUser, updateUserProfile, updatePaymentNumber, changePassword }
+const uploadProfilePicture = [
+  upload.single('image'),
+  async (req, res) => {
+    const { userId } = req.body;
+    const profileImage = req.file;
+
+    if (!profileImage) return res.status(400).json({ error: "Error file pp tidak masuk" });
+    try {
+      const pictureId = await uploadSingle(profileImage, userId, process.env.DRIVE_PROFILEPIC_ID);
+      const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        { $set: { picture: pictureId } },
+        { new: true }
+      );
+      if (!updatedUser) return res.status(400).json({ error: "User id tidak ditemukan" });
+
+      return res.status(200).json({ message: `Update pp sukses ke id ${userId}` })
+    }
+    catch (err) {
+      console.error("🔥 Error uploading pp:", err);
+      return res.status(500).json({ error: "Gagal upload pp" });
+    }
+  }
+];
+
+export { getTrendingUsers, getUserInRooms, getUser, updateUserProfile, updatePaymentNumber, changePassword, uploadProfilePicture }
