@@ -44,6 +44,7 @@ const connectDrive = async () => {
     } else {
       const authUrl = oauth2Client.generateAuthUrl({
         access_type: 'offline',
+        prompt: 'consent',
         scope: ['https://www.googleapis.com/auth/drive'],
       });
       console.log('Visit this URL to authenticate:', authUrl);

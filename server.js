@@ -12,6 +12,10 @@ import { Server } from "socket.io";
 import { connectMongo, connectDrive, oauth2Client } from "./config/db.js";
 import { handleSocketChat } from "./controllers/ChatController.js";
 import { handleSocketNotification } from "./controllers/NotificationController.js";
+<<<<<<< HEAD
+=======
+import ngrok from '@ngrok/ngrok'
+>>>>>>> 121ea61fcfbd345c62c6ef9d8c9ef427663da4ab
 dotenv.config();
 
 const app = express();
@@ -19,7 +23,10 @@ const PORT = process.env.PORT || 5000;
 
 const allowedOrigins = [
   'http://localhost:5173',
-  'http://localhost:5174'
+  'http://localhost:5174',
+  'http://localhost:5500',
+  'http://127.0.0.1:5500',
+  'http://127.0.0.1:5500/'
 ];
 
 const corsOptions = {
@@ -30,22 +37,27 @@ const corsOptions = {
       callback(new Error('Not allowed by CORS'));
     }
   },
+  // origin: '*',
   credentials: true
 };
 
-const settings = {
-  web: {
-    vapidDetails: {
-      subject: `mailto: <${process.env.APP_USER}>`,
-      publicKey: process.env.PUBLIC_VAPID,
-      privateKey: process.env.PRIVATE_VAPID,
-    },
-    TTL: 60,
-    contentEncoding: 'aes128gcm',
-  },
-};
+// const settings = {
+//   web: {
+//     vapidDetails: {
+//       subject: `mailto: <${process.env.APP_USER}>`,
+//       publicKey: process.env.PUBLIC_VAPID,
+//       privateKey: process.env.PRIVATE_VAPID,
+//     },
+//     TTL: 60,
+//     contentEncoding: 'aes128gcm',
+//   },
+// };
 
+<<<<<<< HEAD
 //const push = new PushNotifications(settings);
+=======
+// const push = new PushNotifications(settings);
+>>>>>>> 121ea61fcfbd345c62c6ef9d8c9ef427663da4ab
 
 app.use(cors(corsOptions));
 app.use(cookieParser());
@@ -67,7 +79,6 @@ app.use("/api/chat", chatRoute);
 app.get("/", (req, res) => {
   res.send("API is running...");
 });
-
 
 const storeTokens = (tokens) => {
   fs.writeFileSync('tokens.json', JSON.stringify(tokens));
@@ -92,8 +103,10 @@ app.get('/oauth2callback', async (req, res) => {
   try {
     await connectMongo();
     await connectDrive();
+    const ngrokUrl = await ngrok.forward({ addr: PORT, authtoken_from_env: true });
     server.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
+      console.log("ngrok", ngrokUrl.url());
     });
   } catch (err) {
     console.error("❌ Error starting server:", err);
@@ -110,7 +123,7 @@ io.on("connection", (socket) => {
   })
   handleSocketChat(socket, io);
   handleSocketNotification(socket, io, userSocketMap);
-
+  console.log(userSocketMap);
   socket.on("disconnect", () => {
     console.log("leave", socket.id);
     for (let userId in userSocketMap) {

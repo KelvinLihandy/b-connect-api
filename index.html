@@ -1,40 +1,75 @@
+-profile.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Google Drive File Viewer</title>
+  <title>User Profile Update Test</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
   <div class="container my-4">
-    <h1 class="text-center">Google Drive File Viewer</h1>
-    <div class="d-flex justify-content-between mb-3">
-      <a href="https://drive.google.com/uc?export=download&id=1h5nNAy3pQ4U8zK9MbPaS9AY6laAM7zhz" download>Download</a>
-      <form action="http://localhost:5000/api/gig/createGig" method="POST" enctype="multipart/form-data">
-        <!-- Input for folder name -->
-        <input type="text" name="name" class="form-control" placeholder="Enter Folder Name" required />
-        <br />
-        <!-- Input for file -->
-        <input type="file" name="images" class="form-control" required multiple accept="image/*"/>
-        <button type="submit" class="btn btn-success mt-3">Upload gig</button>
+    <h1 class="text-center">User Profile Update Test</h1>
+    
+    <div class="card p-4 mt-4">
+      <form action="http://localhost:5000/api/user/update-user-profile" method="POST" enctype="multipart/form-data">
+        <div class="mb-3">
+          <label for="userId" class="form-label">User ID (required)</label>
+          <input type="text" name="userId" id="userId" class="form-control" placeholder="Enter User ID" required />
+        </div>
+        
+        <div class="mb-3">
+          <label for="name" class="form-label">Name</label>
+          <input type="text" name="name" id="name" class="form-control" placeholder="Enter new name" />
+        </div>
+        
+        <div class="mb-3">
+          <label for="email" class="form-label">Email</label>
+          <input type="email" name="email" id="email" class="form-control" placeholder="Enter new email" />
+        </div>
+        
+        <div class="mb-3">
+          <label for="phoneNumber" class="form-label">Phone Number</label>
+          <input type="text" name="phoneNumber" id="phoneNumber" class="form-control" placeholder="Enter new phone number (e.g. 081234567890)" />
+        </div>
+        
+        <div class="mb-3">
+          <label for="picture" class="form-label">Profile Picture</label>
+          <input type="file" name="picture" id="picture" class="form-control" accept="image/*"/>
+        </div>
+        
+        <div class="alert alert-info">
+          At least one field (name, email, phoneNumber, or picture) must be provided for update
+        </div>
+        
+        <button type="submit" class="btn btn-primary mt-3">Update Profile</button>
       </form>
     </div>
-    <div class="d-flex justify-content-between mb-3">
-      <form action="http://localhost:5000/api/user/uploadProfilePicture" method="POST" enctype="multipart/form-data">
-        <!-- Input for folder name -->
-        <input type="text" name="userId" class="form-control" placeholder="Enter Folder Name" required />
-        <br />
-        <!-- Input for file -->
-        <input type="file" name="image" class="form-control" required accept="image/*"/>
-        <button type="submit" class="btn btn-success mt-3">Upload pp</button>
-      </form>
-      <div>
-        <a href="http://localhost:5173/chat/6817680d736beb409912dd35">clicck pls</a>
-      </div>
+    
+    <div class="card p-4 mt-4">
+      <h3>Response</h3>
+      <pre id="response" class="bg-light p-3">Submit the form to see the response</pre>
     </div>
   </div>
-  <!-- name, type, description, creator, workFlow, packages -->
-  <img src="https://lh3.googleusercontent.com/d/1LuT252KaQw4wuLRuM2SgcaZd3NlV8HRy=s220?authuser=0" alt="">
+
+  <script>
+    document.querySelector('form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const formData = new FormData(e.target);
+      
+      try {
+        const response = await fetch('http://localhost:5000/api/user/update-user-profile', {
+          method: 'PATCH',
+          body: formData
+        });
+        
+        const data = await response.json();
+        document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        document.getElementById('response').textContent = 'Error: ' + error.message;
+      }
+    });
+  </script>
 </body>
 </html>

@@ -17,7 +17,7 @@ const roomSchema = new mongoose.Schema({
   },
   lastSeen: {
     type: [Date],
-    default: () => [Date.now, Date.now]
+    default: () => [Date.now(), Date.now()]
   }
 },
   { versionKey: false }
