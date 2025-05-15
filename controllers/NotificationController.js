@@ -92,7 +92,8 @@ const sendNotification = async (data) => {
     newNotification.save();
     const socketId = socketMap ? socketMap[receiverId] : null;
     if (socketId) {
-      ioPass.to(socketId).emit('receive_notifications', newNotification);
+      await getAllNotificationsWithData(receiverId, socketId);
+      ioPass.to(socketId).emit('receive_notifications', newNotification);//pass array
       console.log(`Notifikasi terkirim ke id ${receiverId}`);
     }
     else console.log(`User ${receiverId} tidak online`);

@@ -80,11 +80,24 @@ const saveFileMessage = [
   async (req, res) => {
     const { roomId, senderId, type } = req.body;
     const messageFile = req.file;
-
+    console.log("file", messageFile)
+    console.log("body", req.body);
     if (!messageFile) return res.status(400).json({ error: "Error file tidak masuk" });
+    let fileId;
     try {
-      const fileId = await uploadSingle(messageFile, roomId, process.env.DRIVE_ROOM_ID);
-      if (!fileId) return res.status(400).json({ error: "Failed to upload the file" });
+      let retries = 3;
+      while (retries > 0) {
+        try {
+          fileId = await uploadSingle(messageFile, roomId, process.env.DRIVE_ROOM_ID);
+          if (!fileId) return res.status(400).json({ error: "Failed to upload the file" });
+        } catch (uploadError) {
+          console.error(`Upload attempt failed (${retries} retries left):`, uploadError);
+          retries--;
+          if (retries === 0) throw uploadError;
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        if(fileId) break;
+      }
       const newMessage = new Message({
         roomId: roomId,
         senderId: senderId,
@@ -93,17 +106,16 @@ const saveFileMessage = [
       });
       await newMessage.save();
       const messageList = await getAllMessages(roomId);
-      console.log(messageData);
-      await sendNotification(messageData);
+      await sendNotification(newMessage);
       ioPass.to(roomId).emit("receive_message", messageList);
 
-      return res.status(200).json({ message: `save file message sukses dengan id ${fileId}`, messageData })
+      return res.status(200).json({ message: `save file message sukses dengan id ${fileId}`, newMessage })
     } catch (error) {
       console.error("🔥 Gagal save file message:", error);
       return res.status(500).json({ error: "Gagal save file message" });
     }
   }
-];
+]
 
 const getAllMessages = async (roomId) => {
   try {

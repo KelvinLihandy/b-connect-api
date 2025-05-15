@@ -25,6 +25,10 @@ const notificationSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
     index: true
+  },
+  receivedTime: {
+    type: Date,
+    default: Date.now
   }
 },
   { versionKey: false }

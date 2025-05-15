@@ -12,7 +12,6 @@ import { Server } from "socket.io";
 import { connectMongo, connectDrive, oauth2Client } from "./config/db.js";
 import { handleSocketChat } from "./controllers/ChatController.js";
 import { handleSocketNotification } from "./controllers/NotificationController.js";
-import ngrok from '@ngrok/ngrok'
 dotenv.config();
 
 const app = express();
@@ -38,19 +37,6 @@ const corsOptions = {
   credentials: true
 };
 
-// const settings = {
-//   web: {
-//     vapidDetails: {
-//       subject: `mailto: <${process.env.APP_USER}>`,
-//       publicKey: process.env.PUBLIC_VAPID,
-//       privateKey: process.env.PRIVATE_VAPID,
-//     },
-//     TTL: 60,
-//     contentEncoding: 'aes128gcm',
-//   },
-// };
-
-// const push = new PushNotifications(settings);
 
 app.use(cors(corsOptions));
 app.use(cookieParser());
@@ -96,10 +82,8 @@ app.get('/oauth2callback', async (req, res) => {
   try {
     await connectMongo();
     await connectDrive();
-    const ngrokUrl = await ngrok.forward({ addr: PORT, authtoken_from_env: true });
     server.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
-      console.log("ngrok", ngrokUrl.url());
     });
   } catch (err) {
     console.error("❌ Error starting server:", err);

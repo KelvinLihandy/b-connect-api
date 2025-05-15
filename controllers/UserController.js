@@ -92,7 +92,6 @@ const updateUserProfile = [upload.single('picture'), async (req, res) => {
       else if (req.file) {
         let retries = 3;
         let pictureId = null;
-        
         // Upload new picture with retry logic
         while (retries > 0 && pictureId === null) {
           try {
