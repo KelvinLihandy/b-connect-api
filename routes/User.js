@@ -3,6 +3,7 @@ import { getTrendingUsers, getUser, updateUserProfile, updatePaymentNumber, chan
 import authMiddleware from "../middleware/AuthMiddleware.js";
 
 const router = express.Router();
+router.post("/upload-profile-picture", uploadProfilePicture);
 router.post("/get-trending-users", getTrendingUsers);
 router.post("/get-user/:userId", getUser);
 router.patch("/update-user-profile", authMiddleware, updateUserProfile);
