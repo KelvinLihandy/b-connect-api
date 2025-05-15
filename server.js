@@ -12,7 +12,6 @@ import { Server } from "socket.io";
 import { connectMongo, connectDrive, oauth2Client } from "./config/db.js";
 import { handleSocketChat } from "./controllers/ChatController.js";
 import { handleSocketNotification } from "./controllers/NotificationController.js";
-import PushNotifications from "node-pushnotifications";
 dotenv.config();
 
 const app = express();
@@ -46,7 +45,7 @@ const settings = {
   },
 };
 
-const push = new PushNotifications(settings);
+//const push = new PushNotifications(settings);
 
 app.use(cors(corsOptions));
 app.use(cookieParser());
