@@ -12,10 +12,7 @@ import { Server } from "socket.io";
 import { connectMongo, connectDrive, oauth2Client } from "./config/db.js";
 import { handleSocketChat } from "./controllers/ChatController.js";
 import { handleSocketNotification } from "./controllers/NotificationController.js";
-<<<<<<< HEAD
-=======
 import ngrok from '@ngrok/ngrok'
->>>>>>> 121ea61fcfbd345c62c6ef9d8c9ef427663da4ab
 dotenv.config();
 
 const app = express();
@@ -53,11 +50,8 @@ const corsOptions = {
 //   },
 // };
 
-<<<<<<< HEAD
 //const push = new PushNotifications(settings);
-=======
 // const push = new PushNotifications(settings);
->>>>>>> 121ea61fcfbd345c62c6ef9d8c9ef427663da4ab
 
 app.use(cors(corsOptions));
 app.use(cookieParser());
