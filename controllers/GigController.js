@@ -9,7 +9,7 @@ dotenv.config();
 const createGig = [
   upload.array('images', 3),
   async (req, res) => {
-    const { name, type, description, creator, workFlow, packages } = req.body;
+    const { name, categories, description, creator, workflow, packages } = req.body;
     const gigImages = req.files;
 
     if (!gigImages || gigImages.length === 0) {
@@ -19,11 +19,11 @@ const createGig = [
     try {
       const gigData = {
         name,
-        type,
+        categories,
         description,
-        creator,
-        workFlow,
         packages,
+        creator,
+        workflow,
         images: ["temp"],
       };
       const newGig = await Gig.create(gigData);
@@ -44,13 +44,14 @@ const createGig = [
 
 const getGig = async (req, res) => {
   const { name, category, minPrice, maxPrice, rating } = req.body;
+  console.log(req.body);
 
   const finalFilter = { accepted: true, };
-  if (name !== undefined && name !== null && name !== "") {
-    finalFilter.name = { $regex: name, $options: "i" };
+  if (name !== undefined && name !== null && name !== "" && name.trim()) {
+    finalFilter.name = { $regex: name.trim(), $options: "i" };
   }
-  if (category && category.length > 0) {
-    finalFilter.category = { $in: category };
+  if (category !== undefined && category !== null && category !== "") {
+    finalFilter.categories = { $in: [category] };
   }
   if (rating !== undefined && rating !== null && rating > 0) {
     finalFilter.rating = { $gte: rating };
@@ -60,12 +61,10 @@ const getGig = async (req, res) => {
     if (minPrice !== undefined && maxPrice !== undefined) {
       const numMinPrice = Number(minPrice);
       const numMaxPrice = Number(maxPrice);
-      console.log("nan test", numMaxPrice, numMinPrice);
       if (!isNaN(numMinPrice) && !isNaN(numMaxPrice)) {
         gigList = gigList.filter(gig => {
           return gig.packages.every(pkg => {
             const packagePrice = Number(pkg.price);
-            console.log("prc", packagePrice)
             return !isNaN(packagePrice) &&
               packagePrice >= numMinPrice &&
               packagePrice <= numMaxPrice;

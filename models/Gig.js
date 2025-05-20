@@ -58,19 +58,27 @@ const gigSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  category: {
-    type: String,
-    enum: ["Graphics Design", "UI/UX Design", "Video Editing", "Content Writing", "Translation", "Photography", "Web Development"],
-    required: true
+  categories: {
+    type: [String],
+    enum: {
+      values: ["Graphics Design", "UI/UX Design", "Video Editing", "Content Writing", "Translation", "Photography", "Web Development"],
+    },
+    required: true,
+    validate: {
+      validator: function (val) {
+        return Array.isArray(val) && val.length >= 1 && val.length <= 2;
+      },
+      message: 'You must select at least 1 and at most 2 categories.'
+    }
   },
-  image: {
+  images: {
     type: [String],
     required: false,
     validate: {
       validator: function (val) {
-        return Array.isArray(val) && val.length >= 1 && val.length <= 5;
+        return Array.isArray(val) && val.length >= 1 && val.length <= 4;
       },
-      message: 'Gambar ada 1 - 5'
+      message: 'Gambar ada 1 - 4'
     }
   },
   description: {
@@ -101,13 +109,10 @@ const gigSchema = new mongoose.Schema({
   reviewCount: {
     type: Number,
     default: 0
-  },//ini bisa pake cek panjang review yang id produk sama dan tipe review gig atau produkk lah intinya
+  },
   sold: {
     type: Number,
     default: 0
-  },
-  favoritedBy: {
-    type: [String],
   }
 },
   { versionKey: false }
