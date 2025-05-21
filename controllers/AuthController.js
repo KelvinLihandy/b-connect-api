@@ -1,4 +1,4 @@
-import User from "../models/User.js";
+import { User } from "../models/User.js";
 import OTP from "../models/OTP.js";
 import { verifyHash, hashing } from "../utils/HashUtils.js";
 import jwt from "jsonwebtoken";
@@ -66,12 +66,14 @@ const login = async (req, res) => {
       rating: user.rating,
       completes: user.completes,
       reviews: user.reviews,
-      type: user.type
+      type: user.type,
+      phoneNumber: user.phoneNumber,
+      paymentNumber: user.paymentNumber
     }
     const token = jwt.sign(loggedUser, process.env.JWT_SECRET, { expiresIn: remember ? "30d" : "2h" });
     res.cookie("token", token, {
       httpOnly: true,
-      secure: true, 
+      secure: true,
       sameSite: "None",
       maxAge: remember ? 30 * 24 * 60 * 60 * 1000 : undefined,
       path: "/"
@@ -215,9 +217,8 @@ const resendOTP = async (req, res) => {
 
 const changePassword = async (req, res) => {
   const { email, password, passwordConf } = req.body;
-
   const validToken = req.token;
-  console.log(validToken);
+
   const user = await User.findOne({ email });
   const validEmail = await verifyHash(email, validToken);
   try {

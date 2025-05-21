@@ -10,8 +10,8 @@ const hashing = async (string, rounds = 10) => {
   return await bcrypt.hash(string, saltRounds);
 };
 
-const cryptHash = (string) => {
-  return crypto.createHash("sha256").update(string).digest("base64")
+const cryptHash = (string, type = "sha256", digest = "base64") => {
+  return crypto.createHash(type).update(string).digest(digest)
 }
 
 const cryptoEncrypt = (string) => {
@@ -27,7 +27,7 @@ const cryptoEncrypt = (string) => {
 
 const cryptoDecrypt = (string, iv) => {
   const decipher = crypto.createDecipheriv(
-    algorithm, 
+    algorithm,
     Buffer.from(process.env.CRYPT_KEY, 'base64'),
     Buffer.from(iv, 'base64')
   );

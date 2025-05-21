@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import { upload } from "../config/multer.js";
-import Gig from "../models/Gig.js";
+import { Gig } from "../models/Gig.js";
 import { uploadMultiple } from "../utils/DriveUtil.js";
 import dotenv from "dotenv";
 
@@ -44,7 +44,6 @@ const createGig = [
 
 const getGig = async (req, res) => {
   const { name, category, minPrice, maxPrice, rating } = req.body;
-  console.log(req.body);
 
   const finalFilter = { accepted: true, };
   if (name !== undefined && name !== null && name !== "" && name.trim()) {

@@ -6,8 +6,9 @@ import { drive } from "../config/db.js";
 import { uploadSingle } from "../utils/DriveUtil.js";
 import { upload } from "../config/multer.js";
 import { getUserInRooms } from "./UserController.js";
-import User from "../models/User.js";
+import { User } from "../models/User.js";
 import Message from "../models/Message.js";
+import { getFileData } from "./ChatController.js";
 
 dotenv.config();
 
@@ -33,7 +34,7 @@ const handleSocketNotification = (socket, io, userSocketMap) => {
 
 const getAllNotificationsWithData = async (receiverId, socket) => {
   try {
-    const notifications = await Notification.find({ receiverId }).sort({ receivedTime: 1 });
+    const notifications = await Notification.find({ receiverId }).sort({ receivedTime: -1 });
     const notificationsData = await Promise.all(
       notifications.map(async (notification) => {
         let sender = null;
@@ -42,6 +43,10 @@ const getAllNotificationsWithData = async (receiverId, socket) => {
         if (notification.messageType === "chat" && notification.messageId) {
           message = await Message.findById(notification.messageId);
           message.content = cryptoDecrypt(message.content, message.iv);
+          if (message.type !== "text") {
+            const filedata = await getFileData(message.content);
+            message.content = filedata.fileName
+          }
           roomId = message.roomId;
           sender = await User.findById(message.senderId).select("_id picture name");
         } else {

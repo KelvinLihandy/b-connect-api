@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import { hashing } from "../utils/HashUtils.js";
 
-const userSchema = new mongoose.Schema({
+export const userSchema = new mongoose.Schema({
   access: {
     type: Boolean,
     default: false
@@ -39,7 +39,7 @@ const userSchema = new mongoose.Schema({
     required: true,
     minlength: 8
   },
-  phone: {
+  phoneNumber: {
     type: String,
     default: ""
   },
@@ -60,13 +60,9 @@ const userSchema = new mongoose.Schema({
     default: 0
   },
   type: {
-    type: String,
-    default: ""
+    type: [String],
+    default: [""]
   },
-  phoneNumber: {
-    type: String,
-    default: ""
-  }
 },
   { versionKey: false }
 );
@@ -82,5 +78,4 @@ userSchema.pre("save", async function (next) {
   next();
 });
 
-const User = mongoose.model("User", userSchema);
-export default User
+export const User = mongoose.model("User", userSchema);

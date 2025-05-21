@@ -176,10 +176,6 @@ const getFileData = async (fileId) => {
       fields: 'name, size',
     });
     const fileSize = formatFileSize(fileMetadata.data.size);
-    console.log({
-      fileName: fileMetadata.data.name,
-      fileSize: fileSize
-    });
     return {
       fileName: fileMetadata.data.name,
       fileSize: fileSize

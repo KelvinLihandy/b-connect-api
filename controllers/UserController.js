@@ -1,7 +1,8 @@
 import { upload } from "../config/multer.js";
-import User from "../models/User.js";
+import { User } from "../models/User.js";
 import { uploadSingle } from "../utils/DriveUtil.js";
 import { hashing, verifyHash } from "../utils/HashUtils.js";
+import jwt from "jsonwebtoken";
 
 const getTrendingUsers = async (req, res) => {
   try {
@@ -35,7 +36,7 @@ const getUser = async (req, res) => {
   const { userId } = req.params;
 
   try {
-    const singleUser = await User.findOne({ _id: userId });
+    const singleUser = await User.findById(userId);
     if (!singleUser) return res.status(400).json({ error: "id user tidak ditemukan" });
     return res.status(200).json({ user: singleUser })
   }
@@ -45,54 +46,44 @@ const getUser = async (req, res) => {
   }
 }
 
-const updateUserProfile = [upload.single('picture'), async (req, res) => {
-    const { name, email, phoneNumber, deletePicture } = req.body;
-    const userId = req.user.id; // Get userId from middleware
-    
-    // Validasi minimal ada satu field yang diupdate
+const updateUserProfile = [
+  upload.single('picture'),
+  async (req, res) => {
+    const { name, email, phoneNumber, deletePicture, remember } = req.body;
+    const userId = req.user.id;
+
+    const rfcEmailRegex = /^(?:[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}|(?:\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-zA-Z\-0-9]*[a-zA-Z0-9]:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f])\]))$/;
     if (!name && !email && !phoneNumber && !req.file && !deletePicture) {
       console.log("Validation failed: No fields to update");
       return res.status(400).json({ error: "Minimal satu field harus diupdate" });
     }
-    
-    // Validasi format email
-    if (email && !/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(email)) {
+    if (email && !rfcEmailRegex.test(email)) {
       console.log("Validation failed: Invalid email format:", email);
       return res.status(400).json({ error: "Format email tidak valid" });
     }
-    
-    // Validasi format nomor telepon (format Indonesia)
     if (phoneNumber && !/^(\+62|62|0)8[1-9][0-9]{6,10}$/.test(phoneNumber)) {
       console.log("Validation failed: Invalid phone number format:", phoneNumber);
       return res.status(400).json({ error: "Format nomor telepon tidak valid" });
     }
-
     try {
-      // Get user data first
       const prevUser = await User.findById(userId);
       if (!prevUser) {
         console.log("User not found for update:", userId);
         return res.status(404).json({ error: "User tidak ditemukan" });
       }
-      
-      // Prepare update fields
       const updateFields = {
         name: name || prevUser.name,
         email: email || prevUser.email,
         phoneNumber: phoneNumber || prevUser.phoneNumber,
         picture: prevUser.picture
       };
-
-      // Check if delete picture was requested
       if (deletePicture === 'true' || deletePicture === true) {
         console.log("Deleting profile picture, setting to temp");
         updateFields.picture = "temp";
-      } 
-      // Otherwise handle normal picture upload if file exists
+      }
       else if (req.file) {
         let retries = 3;
         let pictureId = null;
-        // Upload new picture with retry logic
         while (retries > 0 && pictureId === null) {
           try {
             pictureId = await uploadSingle(req.file, userId, process.env.DRIVE_PROFILEPIC_ID);
@@ -103,26 +94,39 @@ const updateUserProfile = [upload.single('picture'), async (req, res) => {
             await new Promise(resolve => setTimeout(resolve, 1000));
           }
         }
-        
         updateFields.picture = pictureId;
       }
-      
-      // Fix the findByIdAndUpdate call
       const updatedUser = await User.findByIdAndUpdate(
         userId,
         { $set: updateFields },
         { new: true }
       );
-      
       if (!updatedUser) {
         console.log("User not found for update:", userId);
         return res.status(404).json({ error: "User tidak ditemukan" });
       }
-
-      return res.status(200).json({ 
-        message: `Update profile sukses`,
-        user: updatedUser 
+      const updatedUserPayload = {
+        id: updatedUser._id,
+        access: updatedUser.access,
+        joinedDate: updatedUser.joinedDate,
+        location: updatedUser.location,
+        picture: updatedUser.picture,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        rating: updatedUser.rating,
+        completes: updatedUser.completes,
+        reviews: updatedUser.reviews,
+        type: updatedUser.type
+      }
+      const token = jwt.sign(updatedUserPayload, process.env.JWT_SECRET, { expiresIn: remember ? "30d" : "2h" });
+      res.cookie("token", token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "None",
+        maxAge: remember ? 30 * 24 * 60 * 60 * 1000 : undefined,
+        path: "/"
       });
+      return res.status(200).json({ message: "Update profile sukses", token });
     }
     catch (err) {
       console.error("🔥 Error updating profile:", err);
@@ -135,17 +139,17 @@ const updatePaymentNumber = async (req, res) => {
   const { paymentNumber } = req.body;
   console.log("Payment number:", paymentNumber);
   const userId = req.user.id; // Get userId from middleware
-  
+
   // Validasi format nomor pembayaran
   if (paymentNumber === undefined || paymentNumber === null) {
-  return res.status(400).json({ error: "Nomor pembayaran harus diisi" });
-}
+    return res.status(400).json({ error: "Nomor pembayaran harus diisi" });
+  }
 
-// Allow empty string for disconnecting account
-if (paymentNumber !== "" && !/^\d{8,16}$/.test(paymentNumber)) {
-  return res.status(400).json({ error: "Format nomor pembayaran tidak valid" });
-}
-  
+  // Allow empty string for disconnecting account
+  if (paymentNumber !== "" && !/^\d{8,16}$/.test(paymentNumber)) {
+    return res.status(400).json({ error: "Format nomor pembayaran tidak valid" });
+  }
+
   try {
     // Get user data first
     const user = await User.findById(userId);
@@ -153,21 +157,21 @@ if (paymentNumber !== "" && !/^\d{8,16}$/.test(paymentNumber)) {
       console.log("User not found for payment update:", userId);
       return res.status(404).json({ error: "User tidak ditemukan" });
     }
-    
+
     // Update payment number
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       { $set: { paymentNumber: paymentNumber } },
       { new: true }
     );
-    
+
     if (!updatedUser) {
       return res.status(404).json({ error: "User tidak ditemukan" });
     }
-    
-    return res.status(200).json({ 
+
+    return res.status(200).json({
       message: "Update nomor pembayaran sukses",
-      user: updatedUser 
+      user: updatedUser
     });
   }
   catch (err) {
@@ -181,12 +185,12 @@ const changePassword = async (req, res) => {
 
   const userId = req.user.id;
 
-  const user = await User.findById( userId );
+  const user = await User.findById(userId);
   console.log("User:", user);
   console.log("Password:", password);
   console.log("New Password:", newPassword);
   console.log("Password Confirmation:", passwordConf);
-  const validPassword = await verifyHash( password, user.password );
+  const validPassword = await verifyHash(password, user.password);
   try {
     if (!validPassword) {
       return res.status(400).json({ error: "Password lama tidak valid." });
@@ -207,7 +211,7 @@ const changePassword = async (req, res) => {
       { $set: { password: await hashing(passwordConf) } },
       { new: true }
     );
-    
+
     return res.status(200).json({ message: "Password berhasil diubah." })
   } catch (err) {
     console.error("🔥 Error mengganti password:", err);
