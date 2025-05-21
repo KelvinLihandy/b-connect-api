@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import { upload } from "../config/multer.js";
-import Gig from "../models/Gig.js";
+import { Gig } from "../models/Gig.js";
 import { uploadMultiple } from "../utils/DriveUtil.js";
 import dotenv from "dotenv";
 
@@ -44,7 +44,6 @@ const createGig = [
 
 const getGig = async (req, res) => {
   const { name, category, minPrice, maxPrice, rating } = req.body;
-  console.log(req.body);
 
   const finalFilter = { accepted: true, };
   if (name !== undefined && name !== null && name !== "" && name.trim()) {
@@ -81,6 +80,31 @@ const getGig = async (req, res) => {
   }
 };
 
+const getGigUser = async (req, res) => {
+  const userId = userId; // Assuming user ID is available from authentication middleware
+  
+  try {
+    // Find all gigs created by this user, regardless of acceptance status
+    const userGigs = await Gig.find({ creator: userId });
+    
+    if (!userGigs || userGigs.length === 0) {
+      return res.status(200).json({ 
+        message: "Anda belum memiliki gig",
+        gigs: [] 
+      });
+    }
+    
+    return res.status(200).json({
+      message: "Berhasil mendapatkan gig user",
+      gigs: userGigs
+    });
+  } catch (err) {
+    console.error("🔥 Error saat mengambil gig user:", err);
+    return res.status(500).json({ error: "Gagal mengambil gig user" });
+  }
+};
+
+
 const getGigDetails = async (req, res) => {
   const { gigId } = req.params;
 
@@ -95,4 +119,4 @@ const getGigDetails = async (req, res) => {
   }
 }
 
-export { createGig, getGig, getGigDetails }
+export { createGig, getGig, getGigDetails, getGigUser }

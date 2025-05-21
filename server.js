@@ -4,6 +4,7 @@ import authRoute from "./routes/Auth.js";
 import gigRoute from "./routes/Gig.js";
 import userRoute from "./routes/User.js";
 import chatRoute from "./routes/Chat.js";
+import contractRoute from "./routes/Contract.js"
 import cors from "cors";
 import fs from "fs";
 import http from "http";
@@ -53,6 +54,7 @@ app.use("/api/auth", authRoute);
 app.use("/api/gig", gigRoute);
 app.use("/api/user", userRoute);
 app.use("/api/chat", chatRoute);
+app.use("/api/contract", contractRoute);
 
 // Default Route
 app.get("/", (req, res) => {

@@ -1,33 +1,29 @@
 import mongoose from "mongoose";
 
-const PackageSchema = new mongoose.Schema({
+export const PackageSchema = new mongoose.Schema({
   type: {
     type: String,
     enum: ["Basic", "Standard"],
-    required: true
-  },
-  name: {
-    type: String,
     required: true
   },
   price: {
     type: Number,
     required: true
   },
-  description: {
-    type: String,
-    required: true
-  },
-  deliveryDay: {
+  workDuration: {
     type: Number,
     required: true
   },
-  revision: {
+  conceptLimit: {
     type: Number,
-    default: 1
+    required: true
   },
-  features: {
-    type: [String],
+  revisionLimit: {
+    type: Number,
+    required: true
+  },
+  sourceFile: {
+    type: Boolean,
     required: true
   }
 },
@@ -122,5 +118,4 @@ gigSchema.pre("save", async function (next) {
   next();
 });
 
-const Gig = mongoose.model("Gig", gigSchema);
-export default Gig
+export const Gig = mongoose.model("Gig", gigSchema);
