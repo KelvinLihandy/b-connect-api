@@ -56,6 +56,7 @@ const getGig = async (req, res) => {
     finalFilter.rating = { $gte: rating };
   }
   try {
+    console.log(minPrice, maxPrice);
     let gigList = await Gig.find(finalFilter);
     if (minPrice !== undefined && maxPrice !== undefined) {
       const numMinPrice = Number(minPrice);
