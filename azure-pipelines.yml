@@ -18,6 +18,13 @@ variables:
   # Agent VM image name
   vmImageName: 'ubuntu-latest'
 
+  # Disable parallel execution
+  system.debug: false
+
+# Disable parallelism at pipeline level
+pool:
+  vmImage: $(vmImageName)
+
 stages:
 - stage: Build
   displayName: Build stage
