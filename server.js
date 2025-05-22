@@ -13,6 +13,7 @@ import { Server } from "socket.io";
 import { connectMongo, connectDrive, oauth2Client } from "./config/db.js";
 import { handleSocketChat } from "./controllers/ChatController.js";
 import { handleSocketNotification } from "./controllers/NotificationController.js";
+import { useAzureSocketIO } from "@azure/web-pubsub-socket.io";
 dotenv.config();
 
 const app = express();
@@ -47,6 +48,11 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: corsOptions,
   maxHttpBufferSize: 1e8
+});
+
+useAzureSocketIO(io, {
+    hub: "Hub",
+    connectionString: process.env.SOCKET_CONSTR
 });
 
 // Routes
