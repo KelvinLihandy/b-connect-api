@@ -23,24 +23,27 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:5500',
-  'http://127.0.0.1:5500',
-  'http://127.0.0.1:5500/'
+  'http://127.0.0.1:5500'
 ];
 
-const corsOptions = {
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  // origin: '*',
+// const corsOptions = {
+//   origin: (origin, callback) => {
+//     if (!origin || allowedOrigins.includes(origin)) {
+//       callback(null, true);
+//     } else {
+//       callback(new Error('Not allowed by CORS'));
+//     }
+//   },
+//   // origin: '*',
+//   credentials: true
+// };
+
+
+// app.use(cors(corsOptions));
+app.use(cors({
+  origin: true,
   credentials: true
-};
-
-
-app.use(cors(corsOptions));
+}));
 app.use(cookieParser());
 app.use(express.json());
 
@@ -52,7 +55,8 @@ const io = new Server(server, {
 
 useAzureSocketIO(io, {
     hub: "Hub",
-    connectionString: process.env.SOCKET_CONSTR
+    // connectionString: process.env.SOCKET_CONSTR
+    connectionString: "Endpoint=https://b-connect-socket.webpubsub.azure.com;AccessKey=9jB4CXqOkpYvWe8l1sQCrnvIqsHrwBfMMiW5feFIzuw4gSj6AAlHJQQJ99BEACBsN54XJ3w3AAAAAWPSo7eI;Version=1.0;"
 });
 
 // Routes
