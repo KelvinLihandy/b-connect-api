@@ -90,11 +90,17 @@ const transactionNotification = async (req, res) => {
 
   console.log("transaction", data);
   try {
-    const transaction = await Transaction.findById(data.order_id);
-    const contract = await Contract.findById(data.order_id);
+    const transaction = await Transaction.findOne({ orderId: data.order_id });
+    const contract = await Contract.findOne({ orderId: data.order_id });
+    if (!transaction || !contract) {
+      return res.status(404).json({
+        status: "error",
+        message: "Transaction or Contract not found"
+      });
+    }
     if (transaction) {
       const hash = cryptHash(`${data.order_id}${data.status_code}${data.gross_amount}${process.env.SERVER_KEY}`, "sha512", "hex")
-      if (data.signature !== hash) return {
+      if (data.signature_key !== hash) return {
         status: "error",
         message: "Invalid signature"
       }
@@ -127,7 +133,7 @@ const transactionNotification = async (req, res) => {
           { new: true }
         )
       }
-      else if (transactionStatus == "cancel" || tranasctionStatus == "deny" || transactionStatus == "expired") {
+      else if (transactionStatus == "cancel" || transactionStatus == "deny" || transactionStatus == "expired") {
         await Transaction.findByIdAndUpdate(
           data.order_id,
           { $set: { status: "cancel" } },
