@@ -53,9 +53,8 @@ const io = new Server(server, {
 });
 
 useAzureSocketIO(io, {
-    hub: "Hub",
-    // connectionString: process.env.SOCKET_CONSTR
-    connectionString: "Endpoint=https://b-connect-socket.webpubsub.azure.com;AccessKey=9jB4CXqOkpYvWe8l1sQCrnvIqsHrwBfMMiW5feFIzuw4gSj6AAlHJQQJ99BEACBsN54XJ3w3AAAAAWPSo7eI;Version=1.0;"
+    hub: "Diddy",
+    connectionString: `${process.env.SOCKET_CONSTR}`
 });
 
 // Routes
