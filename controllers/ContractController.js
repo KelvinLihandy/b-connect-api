@@ -84,10 +84,11 @@ const createTransaction = async (req, res) => {
   });
 }
 
-//belum implementasi
 
 const transactionNotification = async (req, res) => {
   const { data } = req.body;
+
+  console.log("transaction", data);
   try {
     const transaction = await Transaction.findById(data.order_id);
     const contract = await Contract.findById(data.order_id);

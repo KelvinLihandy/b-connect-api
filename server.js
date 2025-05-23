@@ -69,6 +69,18 @@ app.get("/", (req, res) => {
   res.send("API is running...");
 });
 
+app.get("/api/socket-url", async (req, res) => {
+  try {
+    const hubName = "Diddy";
+    const serviceClient = new WebPubSubServiceClient(process.env.SOCKET_CONSTR, hubName);
+    const clientUrl = await serviceClient.getClientAccessUrl();
+    res.json({ url: clientUrl });
+  } catch (err) {
+    console.error("Failed to get Web PubSub client URL:", err);
+    res.status(500).json({ error: "Failed to get socket URL" });
+  }
+});
+
 const storeTokens = (tokens) => {
   fs.writeFileSync('tokens.json', JSON.stringify(tokens));
 };
