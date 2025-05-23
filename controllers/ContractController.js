@@ -86,7 +86,7 @@ const createTransaction = async (req, res) => {
 
 
 const transactionNotification = async (req, res) => {
-  const { data } = req.body;
+  const data = req.body;
 
   console.log("transaction", data);
   try {
