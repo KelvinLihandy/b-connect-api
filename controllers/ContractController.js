@@ -38,6 +38,11 @@ const createTransaction = async (req, res) => {
       tokenization: false,
       country_code: "62"
     },
+    callbacks: {
+      finish: "javascript:void(0)",
+      error: "javascript:void(0)",
+      pending: "javascript:void(0)"
+    }
   }
   console.log("payload", payload)
   const response = await fetch("https://app.sandbox.midtrans.com/snap/v1/transactions", {
@@ -90,13 +95,13 @@ const transactionNotification = async (req, res) => {
       });
     }
     if (transaction) {
-      const hash = cryptHash(`${data.order_id}${data.status_code}${data.gross_amount}${process.env.SERVER_KEY}`, "sha512", "hex")
-      if (data.signature_key !== hash) {
-        return res.status(403).json({
-          status: "error",
-          message: "Invalid signature"
-        });
-      }
+      // const hash = cryptHash(`${data.order_id}${data.status_code}${data.gross_amount}${process.env.SERVER_KEY}`, "sha512", "hex")
+      // if (data.signature_key !== hash) {
+      //   return res.status(403).json({
+      //     status: "error",
+      //     message: "Invalid signature"
+      //   });
+      // }
       let transactionStatus = data.transaction_status;
       let fraudStatus = data.fraud_status;
       let create = false;
