@@ -4,7 +4,6 @@ import { verifyHash, hashing } from "../utils/HashUtils.js";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
-import { Socket } from "socket.io";
 
 dotenv.config()
 

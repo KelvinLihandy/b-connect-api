@@ -5,16 +5,13 @@ import Midtrans from "midtrans-client";
 import { nanoid } from "nanoid";
 import Transaction from "../models/Transaction.js";
 import { cryptHash } from "../utils/HashUtils.js";
+import { User } from "../models/User.js";
 dotenv.config();
 
 const snap = new Midtrans.Snap({
   isProduction: false,
   serverKey: process.env.SERVER_KEY
 });
-
-//masukin data ke snap
-//return transaction key
-//kalau transaksi oke baru save db
 
 const createTransaction = async (req, res) => {
   const { gigId, selectedPackage } = req.body;
@@ -42,10 +39,9 @@ const createTransaction = async (req, res) => {
       country_code: "62"
     },
     callbacks: {
-      //route si budi
-      finish: "http://localhost:5173/",
-      error: "http://localhost:5173/",
-      pending: "http://localhost:5173/"
+      finish: "javascript:void(0)",
+      error: "javascript:void(0)",
+      pending: "javascript:void(0)"
     }
   }
   console.log("payload", payload)
@@ -59,7 +55,6 @@ const createTransaction = async (req, res) => {
     body: JSON.stringify(payload)
   })
   const data = await response.json();
-  console.log("data res", data);
   if (response.status !== 201) {
     return res.status(500).json({
       status: "error",
@@ -73,82 +68,72 @@ const createTransaction = async (req, res) => {
     customer_picture: user.picture,
     customer_email: user.email,
     customer_phone: user.phoneNumber,
+    gigId: gigId,
+    package: selectedPackage,
     snap_token: data.token,
     snap_redirect: data.redirect_url
   }
   const newTransaction = await Transaction.create(transactionData);
-  await createContract(transactionId, data.gigId, data.selectedPackage, user)
   return res.status(201).json({
-    status: "success",
+    status: "success transaction create",
     transaction: newTransaction
   });
 }
 
-//belum implementasi
 
 const transactionNotification = async (req, res) => {
-  const { data } = req.body;
+  const data = req.body;
+
+  console.log("transaction", data);
   try {
-    const transaction = await Transaction.findById(data.order_id);
-    const contract = await Contract.findById(data.order_id);
-    if (transaction) {
-      const hash = cryptHash(`${data.order_id}${data.status_code}${data.gross_amount}${process.env.SERVER_KEY}`, "sha512", "hex")
-      if (data.signature !== hash) return {
+    const transaction = await Transaction.findOne({ orderId: data.order_id });
+    const contract = await Contract.findOne({ orderId: data.order_id });
+    if (!transaction) {
+      return res.status(200).json({
         status: "error",
-        message: "Invalid signature"
-      }
-      let res = null;
+        message: "Transaction not found"
+      });
+    }
+    if (transaction) {
+      // const hash = cryptHash(`${data.order_id}${data.status_code}${data.gross_amount}${process.env.SERVER_KEY}`, "sha512", "hex")
+      // if (data.signature_key !== hash) {
+      //   return res.status(403).json({
+      //     status: "error",
+      //     message: "Invalid signature"
+      //   });
+      // }
       let transactionStatus = data.transaction_status;
       let fraudStatus = data.fraud_status;
-      if (transactionStatus == "capture") {
-        if (fraudStatus == "accept") {
-          await Transaction.findOneAndUpdate(
-            { orderId: data.order_id },
-            { $set: { status: "paid" } },
-            { new: true }
-          );
-          await Contract.findOneAndUpdate(
-            { orderId: data.orderId },
-            { $set: { status: "paid" } },
-            { new: true }
-          )
-        }
+      let create = false;
+      if (transactionStatus === "capture" && fraudStatus === "accept") {
+        await Transaction.findOneAndUpdate(
+          { orderId: data.order_id },
+          { $set: { status: "paid" } }
+        );
+        create = true;
       }
       else if (transactionStatus == "settlement") {
-        await Transaction.findByIdAndUpdate(
-          data.order_id,
+        await Transaction.findOneAndUpdate(
+          { orderId: data.order_id },
           { $set: { status: "paid" } },
-          { new: true }
         );
-        await Contract.findOneAndUpdate(
-          { orderId: data.orderId },
-          { $set: { status: "paid" } },
-          { new: true }
-        )
+        create = true;
       }
-      else if (transactionStatus == "cancel" || tranasctionStatus == "deny" || transactionStatus == "expired") {
-        await Transaction.findByIdAndUpdate(
-          data.order_id,
-          { $set: { status: "cancel" } },
-          { new: true }
+      else if (["cancel", "deny", "expired"].includes(transactionStatus)) {
+        await Transaction.findOneAndUpdate(
+          { orderId: data.order_id },
+          { $set: { status: "cancel" } }
         );
-        await Contract.findOneAndUpdate(
-          { orderId: data.orderId },
-          { $set: { status: "cancel" } },
-          { new: true }
-        )
       }
       else if (transactionStatus == "pending") {
-        await Transaction.findByIdAndUpdate(
-          data.order_id,
+        await Transaction.findOneAndUpdate(
+          { orderId: data.order_id },
           { $set: { status: "pending" } },
-          { new: true }
         );
-        await Contract.findOneAndUpdate(
-          { orderId: data.orderId },
-          { $set: { status: "pending" } },
-          { new: true }
-        )
+      }
+      if (create && !contract) {
+        const user = await User.findOne({ email: transaction.customer_email });
+        await createContract(data.order_id, transaction.gigId, transaction.package, user);
       }
     }
 
@@ -174,7 +159,7 @@ const createContract = async (orderId, gigId, selectedPackage, user) => {
       userId: user.id,
       package: selectedPackage
     })
-    newContract.save();
+    await newContract.save();
   }
   catch (err) {
     console.log("error create contract", err);

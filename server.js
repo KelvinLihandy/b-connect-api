@@ -13,6 +13,7 @@ import { Server } from "socket.io";
 import { connectMongo, connectDrive, oauth2Client } from "./config/db.js";
 import { handleSocketChat } from "./controllers/ChatController.js";
 import { handleSocketNotification } from "./controllers/NotificationController.js";
+import { useAzureSocketIO } from "@azure/web-pubsub-socket.io";
 dotenv.config();
 
 const app = express();
@@ -22,8 +23,7 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:5500',
-  'http://127.0.0.1:5500',
-  'http://127.0.0.1:5500/'
+  'http://127.0.0.1:5500'
 ];
 
 const corsOptions = {
@@ -37,7 +37,10 @@ const corsOptions = {
   // origin: '*',
   credentials: true
 };
-
+// const corsOptions = {
+//   origin: true,
+//   credentials: true
+// };
 
 app.use(cors(corsOptions));
 app.use(cookieParser());
@@ -48,6 +51,11 @@ const io = new Server(server, {
   cors: corsOptions,
   maxHttpBufferSize: 1e8
 });
+
+// useAzureSocketIO(io, {
+//     hub: "Hub",
+//     connectionString: process.env.SOCKET_CONSTR
+// });
 
 // Routes
 app.use("/api/auth", authRoute);
