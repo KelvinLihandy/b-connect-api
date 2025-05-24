@@ -32,7 +32,7 @@ const transactionSchema = new mongoose.Schema({
     required: true
   },
   gigId: {
-    type: Stringg,
+    type: String,
     required: true
   },
   selectedPackage: {

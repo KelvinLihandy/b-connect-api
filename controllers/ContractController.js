@@ -13,10 +13,6 @@ const snap = new Midtrans.Snap({
   serverKey: process.env.SERVER_KEY
 });
 
-//masukin data ke snap
-//return transaction key
-//kalau transaksi oke baru save db
-
 const createTransaction = async (req, res) => {
   const { gigId, selectedPackage } = req.body;
   const user = req.user;
