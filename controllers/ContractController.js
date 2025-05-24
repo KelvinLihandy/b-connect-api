@@ -38,11 +38,6 @@ const createTransaction = async (req, res) => {
       tokenization: false,
       country_code: "62"
     },
-    callbacks: {
-      finish: "javascript:void(0)",
-      error: "javascript:void(0)",
-      pending: "javascript:void(0)"
-    }
   }
   console.log("payload", payload)
   const response = await fetch("https://app.sandbox.midtrans.com/snap/v1/transactions", {
@@ -55,7 +50,6 @@ const createTransaction = async (req, res) => {
     body: JSON.stringify(payload)
   })
   const data = await response.json();
-  console.log("data res", data);
   if (response.status !== 201) {
     return res.status(500).json({
       status: "error",
