@@ -3,6 +3,9 @@ import { upload } from "../config/multer.js";
 import { Gig } from "../models/Gig.js";
 import { uploadMultiple } from "../utils/DriveUtil.js";
 import dotenv from "dotenv";
+import Transaction from "../models/Transaction.js";
+import Contract from "../models/Contract.js";
+import { User } from "../models/User.js";
 
 dotenv.config();
 
@@ -156,4 +159,35 @@ const getGigCount = async (req, res) => {
   }
 };
 
-export { createGig, getGig, getGigDetails, getGigUser, getGigCount }
+const disabledGigIds = async (req, res) => {
+  const userEmail = req.user.email;
+  const userId = req.user.id;
+
+  try {
+    const transactions = await Transaction.find({
+      customer_email: userEmail,
+      status: "pending"
+    });
+    const contracts = await Contract.find({
+      userId: userId,
+      progress: { $lt: 3 } //update kalau budi mau lebih banyak progress contract
+    });
+    const result = {};
+    transactions.forEach(tx => {
+      result[tx.gigId] = result[tx.gigId] || [];
+      result[tx.gigId].push("transaction-pending");
+    });
+    contracts.forEach(contract => {
+      result[contract.gigId] = result[contract.gigId] || [];
+      result[contract.gigId].push("contract-in-progress");
+    });
+    console.log("disabled gigs", result);
+
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error("🔥 Error saat mencari gigId disable:", err);
+    return res.status(500).json({ error: "Gagal memproses gigId disable." });
+  }
+}
+
+export { createGig, getGig, getGigDetails, getGigUser, getGigCount, disabledGigIds }
