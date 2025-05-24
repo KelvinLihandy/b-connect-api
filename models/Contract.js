@@ -18,13 +18,9 @@ const contractSchema = new mongoose.Schema({
     type : PackageSchema,
     required: true
   },
-  status: {
-    type: String,
-    default: "pending"
-  },
   progress: {
     type: Number,
-    default: 0 //1 is complete (100%)
+    default: 1//steps
   },
   startTime: {
     type: Date,

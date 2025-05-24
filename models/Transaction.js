@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { userSchema } from "./User.js";
+import { PackageSchema } from "./Gig.js";
 
 const transactionSchema = new mongoose.Schema({
   orderId: {
@@ -28,6 +29,14 @@ const transactionSchema = new mongoose.Schema({
   },
   customer_phone: {
     type: String,
+    required: true
+  },
+  gigId: {
+    type: Stringg,
+    required: true
+  },
+  selectedPackage: {
+    type: PackageSchema,
     required: true
   },
   snap_token: {
