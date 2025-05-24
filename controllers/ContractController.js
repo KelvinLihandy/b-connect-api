@@ -46,7 +46,7 @@ const createTransaction = async (req, res) => {
     }
   }
   console.log("payload", payload)
-  const response = await fetch("https://app.sandbox.midtrans.com/snap/v1/transactions", {
+  const response = await fetch("https://app.midtrans.com/snap/snap.js", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
