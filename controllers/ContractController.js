@@ -100,13 +100,13 @@ const transactionNotification = async (req, res) => {
       });
     }
     if (transaction) {
-      // const hash = cryptHash(`${data.order_id}${data.status_code}${data.gross_amount}${process.env.SERVER_KEY}`, "sha512", "hex")
-      // if (data.signature_key !== hash) {
-      //   return res.status(403).json({
-      //     status: "error",
-      //     message: "Invalid signature"
-      //   });
-      // }
+      const hash = cryptHash(`${data.order_id}${data.status_code}${data.gross_amount}${process.env.SERVER_KEY}`, "sha512", "hex")
+      if (data.signature_key !== hash) {
+        return res.status(403).json({
+          status: "error",
+          message: "Invalid signature"
+        });
+      }
       let transactionStatus = data.transaction_status;
       let fraudStatus = data.fraud_status;
       let create = false;
