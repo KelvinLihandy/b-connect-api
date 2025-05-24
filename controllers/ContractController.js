@@ -32,13 +32,13 @@ const createTransaction = async (req, res) => {
       email: user.email,
       phone: user.phoneNumber,
     },
-    enabled_payments: ["gopay"],
-    gopay: {
-      enable_callback: true,
-      callback_url: "http://gopay.com",
-      tokenization: false,
-      country_code: "62"
-    },
+    // enabled_payments: ["gopay"],
+    // gopay: {
+    //   enable_callback: true,
+    //   callback_url: "http://gopay.com",
+    //   tokenization: false,
+    //   country_code: "62"
+    // },
     callbacks: {
       finish: "javascript:void(0)",
       error: "javascript:void(0)",
