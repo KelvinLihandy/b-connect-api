@@ -39,9 +39,12 @@ const createTransaction = async (req, res) => {
       country_code: "62"
     },
     callbacks: {
-      finish: "javascript:void(0)",
-      error: "javascript:void(0)",
-      pending: "javascript:void(0)"
+      // finish: "javascript:void(0)",
+      // error: "javascript:void(0)",
+      // pending: "javascript:void(0)"
+      finish: "",
+      error: "",
+      pending: ""
     }
   }
   console.log("payload", payload)
