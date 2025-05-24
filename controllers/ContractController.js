@@ -97,7 +97,6 @@ const transactionNotification = async (req, res) => {
           message: "Invalid signature"
         });
       }
-      let res = null;
       let transactionStatus = data.transaction_status;
       let fraudStatus = data.fraud_status;
       let create = false;
