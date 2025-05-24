@@ -26,21 +26,21 @@ const allowedOrigins = [
   'http://127.0.0.1:5500'
 ];
 
-// const corsOptions = {
-//   origin: (origin, callback) => {
-//     if (!origin || allowedOrigins.includes(origin)) {
-//       callback(null, true);
-//     } else {
-//       callback(new Error('Not allowed by CORS'));
-//     }
-//   },
-//   // origin: '*',
-//   credentials: true
-// };
 const corsOptions = {
-  origin: true,
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  // origin: '*',
   credentials: true
 };
+// const corsOptions = {
+//   origin: true,
+//   credentials: true
+// };
 
 app.use(cors(corsOptions));
 app.use(cookieParser());
