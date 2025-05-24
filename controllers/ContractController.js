@@ -88,6 +88,10 @@ const transactionNotification = async (req, res) => {
 
   console.log("transaction", data);
   try {
+    if (data.order_id.startsWith("payment_notif_test_")) {
+      return res.status(200).json({ status: "test", message: "Test notification received" });
+    }
+
     const transaction = await Transaction.findOne({ orderId: data.order_id });
     const contract = await Contract.findOne({ orderId: data.order_id });
     if (!transaction) {
