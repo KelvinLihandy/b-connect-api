@@ -1,18 +1,18 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import Contract from "../models/Contract.js";
-import Midtrans from "midtrans-client";
+// import Midtrans from "midtrans-client";
 import { nanoid } from "nanoid";
 import Transaction from "../models/Transaction.js";
 import { cryptHash } from "../utils/HashUtils.js";
 import { User } from "../models/User.js";
 dotenv.config();
 
-let snap = new Midtrans.Snap({
-  isProduction: false,
-  serverKey: process.env.SERVER_KEY,
-  clientKey: process.env.CLIENT_KEY
-});
+// const snap = new Midtrans.Snap({
+//   isProduction: false,
+//   serverKey: process.env.SERVER_KEY,
+//   clien
+// });
 
 const createTransaction = async (req, res) => {
   const { gigId, selectedPackage } = req.body;
@@ -45,38 +45,24 @@ const createTransaction = async (req, res) => {
       pending: "javascript:void(0)"
     }
   }
-  // console.log("payload", payload)
-  // const response = await fetch("https://app.midtrans.com/snap/v1/transactions", {
-  //   method: "POST",
-  //   headers: {
-  //     "Content-Type": "application/json",
-  //     "Accept": "application/json",
-  //     "Authorization": `Basic ${authKey}`,
-  //   },
-  //   body: JSON.stringify(payload)
-  // })
-  // const data = await response.json();
-  // if (response.status !== 201) {
-  //   return res.status(500).json({
-  //     status: "error",
-  //     message: "gagal create transaction"
-  //   });
-  // }
-  let token = "";
-  let url = "";
-  snap.createTransaction(JSON.stringify(payload))
-    .then((transaction) => {
-      token = transaction.token;
-      url = transaction.redirectUrl;
-    })
-    .catch((error) => {
-      console.error('Midtrans transaction creation failed:', error.message || error);
-      return res.status(500).json({
-        status: "error",
-        message: "gagal create transaction"
-      });
+  console.log("payload", payload)
+  const response = await fetch("https://app.sandbox.midtrans.com/snap/v1/transactions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+      "Authorization": `Basic ${authKey}`,
+    },
+    body: JSON.stringify(payload)
+  })
+  const data = await response.json();
+  console.log("data res", data);
+  if (response.status !== 201) {
+    return res.status(500).json({
+      status: "error",
+      message: "gagal create transaction"
     });
-
+  }
   const transactionData = {
     orderId: transactionId,
     amount: selectedPackage.price,
@@ -86,8 +72,8 @@ const createTransaction = async (req, res) => {
     customer_phone: user.phoneNumber,
     gigId: gigId,
     package: selectedPackage,
-    snap_token: token,
-    snap_redirect: url
+    snap_token: data.token,
+    snap_redirect: data.redirect_url
   }
   const newTransaction = await Transaction.create(transactionData);
   return res.status(201).json({
@@ -98,84 +84,76 @@ const createTransaction = async (req, res) => {
 
 
 const transactionNotification = async (req, res) => {
-  const notificationJson = req.body;
+  const data = req.body;
 
-  console.log("transaction", notificationJson);
-  console.log("Headers:", req.headers);
+  console.log("transaction", data);
   try {
-    const statusResponse = await snap.transaction.notification(notificationJson);
-    const orderId = statusResponse.order_id;
-    const transactionStatus = statusResponse.transaction_status;
-    const fraudStatus = statusResponse.fraud_status;
-
-    console.log(`Transaction notification received. Order ID: ${orderId}. Transaction status: ${transactionStatus}. Fraud status: ${fraudStatus}`);
-
-    if (orderId.startsWith("payment_notif_test_")) {
-      return res.status(200).json({ status: "test", message: "Test notification received" });
-    }
-
-    const transaction = await Transaction.findOne({ orderId });
-    const contract = await Contract.findOne({ orderId });
-
+    const transaction = await Transaction.findOne({ orderId: data.order_id });
+    const contract = await Contract.findOne({ orderId: data.order_id });
     if (!transaction) {
-      return res.status(404).json({ status: "error", message: "Transaction not found" });
-    }
-    const hash = cryptHash(`${orderId}${statusResponse.status_code}${statusResponse.gross_amount}${process.env.SERVER_KEY}`, "sha512", "hex")
-    if (statusResponse.signature_key !== hash) {
-      return res.status(403).json({
+      return res.status(404).json({
         status: "error",
-        message: "Invalid signature"
+        message: "Transaction not found"
       });
     }
-    let create = false;
-
-    if (transactionStatus === 'capture') {
-      if (fraudStatus === 'challenge') {
+    if (transaction) {
+      const hash = cryptHash(`${data.order_id}${data.status_code}${data.gross_amount}${process.env.SERVER_KEY}`, "sha512", "hex")
+      if (data.signature_key !== hash) {
+        return res.status(403).json({
+          status: "error",
+          message: "Invalid signature"
+        });
+      }
+      let res = null;
+      let transactionStatus = data.transaction_status;
+      let fraudStatus = data.fraud_status;
+      let create = false;
+      if (transactionStatus === "capture" && fraudStatus === "accept") {
         await Transaction.findOneAndUpdate(
-          { orderId },
-          { $set: { status: "challenge" } }
-        );
-        create = true;
-      } else if (fraudStatus === 'accept') {
-        await Transaction.findOneAndUpdate(
-          { orderId },
-          { $set: { status: "success" } }
+          { orderId: data.order_id },
+          { $set: { status: "paid" } }
         );
         create = true;
       }
-    } else if (transactionStatus === 'settlement') {
-      await Transaction.findOneAndUpdate(
-        { orderId },
-        { $set: { status: "paid" } }
-      );
-      create = true;
-    } else if (['cancel', 'deny', 'expired'].includes(transactionStatus)) {
-      await Transaction.findOneAndUpdate(
-        { orderId },
-        { $set: { status: "cancel" } }
-      );
-    } else if (transactionStatus === 'pending') {
-      await Transaction.findOneAndUpdate(
-        { orderId },
-        { $set: { status: "pending" } }
-      );
+      else if (transactionStatus == "settlement") {
+        await Transaction.findOneAndUpdate(
+          { orderId: data.order_id },
+          { $set: { status: "paid" } },
+        );
+        create = true;
+      }
+      else if (["cancel", "deny", "expired"].includes(transactionStatus)) {
+        await Transaction.findOneAndUpdate(
+          { orderId: data.order_id },
+          { $set: { status: "cancel" } }
+        );
+      }
+      else if (transactionStatus == "pending") {
+        await Transaction.findOneAndUpdate(
+          { orderId: data.order_id },
+          { $set: { status: "pending" } },
+        );
+      }
+      if (create && !contract) {
+        const user = await User.findOne({ email: transaction.customer_email });
+        await createContract(data.order_id, transaction.gigId, transaction.package, user);
+      }
     }
 
-    if (create && !contract) {
-      const user = await User.findOne({ email: transaction.customer_email });
-      await createContract(orderId, transaction.gigId, transaction.selectedPackage, user);
-    }
-
-    // return res.status(200).json({ status: "success", message: "Notification handled" });
-    return res.status(200).send("OK");
-  } catch (err) {
+    // return res.status(200).json({
+    //   status: "success",
+    //   message: "ok"
+    // })
+    return res.status(200).send("Ok");
+  }
+  catch (err) {
     console.log("error catch notif midtrans", err);
     return res.status(500).json({
       status: "error",
       error: "error catch notif midtrans"
     })
   }
-};
+}
 
 const createContract = async (orderId, gigId, selectedPackage, user) => {
   try {
