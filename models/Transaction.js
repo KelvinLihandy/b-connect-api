@@ -35,7 +35,7 @@ const transactionSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  selectedPackage: {
+  package: {
     type: PackageSchema,
     required: true
   },
