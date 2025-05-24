@@ -89,7 +89,7 @@ const transactionNotification = async (req, res) => {
     const transaction = await Transaction.findOne({ orderId: data.order_id });
     const contract = await Contract.findOne({ orderId: data.order_id });
     if (!transaction) {
-      return res.status(404).json({
+      return res.status(200).json({
         status: "error",
         message: "Transaction not found"
       });
