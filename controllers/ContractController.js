@@ -85,6 +85,8 @@ const transactionNotification = async (req, res) => {
   const data = req.body;
 
   console.log("transaction", data);
+  console.log("Headers:", req.headers);
+  console.log("Body:", JSON.stringify(req.body, null, 2));
   try {
     const transaction = await Transaction.findOne({ orderId: data.order_id });
     const contract = await Contract.findOne({ orderId: data.order_id });
@@ -137,10 +139,11 @@ const transactionNotification = async (req, res) => {
       }
     }
 
-    return res.status(200).json({
-      status: "success",
-      message: "ok"
-    })
+    // return res.status(200).json({
+    //   status: "success",
+    //   message: "ok"
+    // })
+    return res.status(200).send("OK");
   }
   catch (err) {
     console.log("error catch notif midtrans", err);
