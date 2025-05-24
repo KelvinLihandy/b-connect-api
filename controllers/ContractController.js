@@ -56,7 +56,7 @@ const createTransaction = async (req, res) => {
     body: JSON.stringify(payload)
   })
   const data = await response.json();
-  console.log("data res", data);
+  console.log("data res", response);
   if (response.status !== 201) {
     return res.status(500).json({
       status: "error",
