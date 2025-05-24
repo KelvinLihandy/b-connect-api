@@ -133,7 +133,7 @@ const transactionNotification = async (req, res) => {
       }
       if (create && !contract) {
         const user = await User.findOne({ email: transaction.customer_email });
-        await createContract(data.order_id, transaction.gigId, transaction.selectedPackage, user);
+        await createContract(data.order_id, transaction.gigId, transaction.package, user);
       }
     }
 
