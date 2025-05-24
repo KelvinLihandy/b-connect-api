@@ -39,10 +39,9 @@ const createTransaction = async (req, res) => {
       country_code: "62"
     },
     callbacks: {
-      //route si budi
-      finish: "http://localhost:5173/",
-      error: "http://localhost:5173/",
-      pending: "http://localhost:5173/"
+      finish: "javascript:void(0)",
+      error: "javascript:void(0)",
+      pending: "javascript:void(0)"
     }
   }
   console.log("payload", payload)
