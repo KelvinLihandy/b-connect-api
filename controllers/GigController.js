@@ -6,6 +6,8 @@ import dotenv from "dotenv";
 import Transaction from "../models/Transaction.js";
 import Contract from "../models/Contract.js";
 import { User } from "../models/User.js";
+import Review from "../models/Review.js";
+import { cryptoDecrypt } from "../utils/HashUtils.js";
 
 dotenv.config();
 
@@ -116,7 +118,29 @@ const getGigDetails = async (req, res) => {
     console.log(gigId)
     const gig = await Gig.findOne({ _id: gigId });
     if (!gig) return res.status(400).json({ error: `Tidak ada gig dengan id ${gigId}` });
-    return res.status(200).json({ detail: gig })
+    const reviews = await Review.find({
+      gigId: gigId
+    });
+    const reviewerIds = [...new Set(reviews.map(r => r.reviewerId))];
+    const reviewers = await User.find({ _id: { $in: reviewerIds } }, { _id: 1, name: 1, picture: 1 });
+    const reviewerMap = {};
+    const pictureMap = {};
+    reviewers.forEach(user => {
+      reviewerMap[user._id.toString()] = user.name;
+      pictureMap[user._id.toString()] = user.picture;
+    });
+    const decryptedReviews = reviews.map(review => ({
+      ...review.toObject(),
+      reviewMessage: cryptoDecrypt(review.reviewMessage, review.iv),
+      reviewerName: reviewerMap[review.reviewerId.toString()] || "Unknown",
+      reviewerPicture: pictureMap[review.reviewerId.toString()] || "temp",
+      reviewerId: undefined,
+    }));
+
+    return res.status(200).json({
+      detail: gig,
+      reviews: decryptedReviews
+    })
   } catch (err) {
     console.error("🔥 Error saat mencari detail gig:", err);
     return res.status(500).json({ error: "Gagal mencari detail gig." });
