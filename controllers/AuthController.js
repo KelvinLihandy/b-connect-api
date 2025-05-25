@@ -246,4 +246,15 @@ const changePassword = async (req, res) => {
   }
 }
 
-export { login, register, getAuth, changePassword, sendOTP, resendOTP, verifyOtp };
+const clearCookie = async (req, res) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "None",
+    path: "/"
+  });
+
+  return res.status(200).json({ message: "Log Out Cookie Clear" });
+}
+
+export { login, register, getAuth, changePassword, sendOTP, resendOTP, verifyOtp, clearCookie };

@@ -1,12 +1,16 @@
 import { upload } from "../config/multer.js";
+import { Gig } from "../models/Gig.js";
+import Review from "../models/Review.js";
 import { User } from "../models/User.js";
 import { uploadSingle } from "../utils/DriveUtil.js";
-import { hashing, verifyHash } from "../utils/HashUtils.js";
+import { cryptoDecrypt, hashing, verifyHash } from "../utils/HashUtils.js";
 import jwt from "jsonwebtoken";
 
 const getTrendingUsers = async (req, res) => {
   try {
-    const topUsers = await User.find({}, "picture name type rating completes reviews")
+    const topUsers = await User.find({
+      access: true
+    }, "picture name type rating completes reviews")
       .sort({ completes: -1 })
       .limit(3);
     return res.status(200).json(topUsers);
@@ -113,6 +117,8 @@ const updateUserProfile = [
         picture: updatedUser.picture,
         name: updatedUser.name,
         email: updatedUser.email,
+        phoneNumber: updatedUser.phoneNumber,
+        paymentNumber: updatedUser.paymentNumber,
         rating: updatedUser.rating,
         completes: updatedUser.completes,
         reviews: updatedUser.reviews,
@@ -244,4 +250,61 @@ const uploadProfilePicture = [
   }
 ];
 
-export { getTrendingUsers, getUserInRooms, getUser, updateUserProfile, updatePaymentNumber, changePassword, uploadProfilePicture }
+const getFreelancerData = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const freelancer = await User.findOne({
+      _id: id,
+      access: true
+    });
+    if (!freelancer) return res.status(400).json({ error: "id freelancer tidak ditemukan" });
+    const freelancerGigs = await Gig.find({ creator: id });
+    const reviews = await Review.find({
+      gigId: { $in: freelancerGigs.map(g => g._id) }
+    });
+    const reviewerIds = [...new Set(reviews.map(r => r.reviewerId))];
+    const reviewers = await User.find({ _id: { $in: reviewerIds } }, { _id: 1, name: 1, picture: 1 });
+    const reviewerMap = {};
+    const pictureMap = {};
+    reviewers.forEach(user => {
+      reviewerMap[user._id.toString()] = user.name;
+      pictureMap[user._id.toString()] = user.picture;
+    });
+    const gigIds = [...new Set(reviews.map(r => r.gigId.toString()))];
+    const gigs = await Gig.find({ _id: { $in: gigIds } });
+    const gigMap = {};
+    gigs.forEach(gig => {
+      gigMap[gig._id.toString()] = gig;
+    });
+    const decryptedReviews = reviews.map(review => ({
+      ...review.toObject(),
+      reviewMessage: cryptoDecrypt(review.reviewMessage, review.iv),
+      reviewerName: reviewerMap[review.reviewerId.toString()] || "Unknown",
+      reviewerPicture: pictureMap[review.reviewerId.toString()] || "temp",
+      reviewedGig: gigMap[review.gigId.toString()] || null,
+      reviewerId: undefined,
+      gigId: undefined
+    }));
+
+    // const gigsWithReviews = freelancerGigs.map(gig => {
+    //   const gigReviews = decryptedReviews.filter(r => r.gigId.toString() === gig._id.toString());
+    //   return {
+    //     ...gig.toObject(),
+    //     reviews: gigReviews,
+    //   };
+    // });
+
+    return res.json({
+      freelancer,
+      freelancerGigs,
+      reviews: decryptedReviews
+    });
+  }
+  catch (err) {
+    console.error("🔥 Error cari user:", err);
+    return res.status(500).json({ error: "error cari user" });
+  }
+}
+
+export { getTrendingUsers, getUserInRooms, getUser, updateUserProfile, updatePaymentNumber, changePassword, uploadProfilePicture, getFreelancerData }
