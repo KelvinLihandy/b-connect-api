@@ -53,7 +53,7 @@ const getUser = async (req, res) => {
 const updateUserProfile = [
   upload.single('picture'),
   async (req, res) => {
-    const { name, email, phoneNumber, deletePicture, remember } = req.body;
+    const { name, email, phoneNumber, descr, deletePicture, remember } = req.body;
     const userId = req.user.id;
 
     const rfcEmailRegex = /^(?:[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}|(?:\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-zA-Z\-0-9]*[a-zA-Z0-9]:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f])\]))$/;
@@ -79,6 +79,7 @@ const updateUserProfile = [
         name: name || prevUser.name,
         email: email || prevUser.email,
         phoneNumber: phoneNumber || prevUser.phoneNumber,
+        description: descr !== undefined ? descr : prevUser.description,
         picture: prevUser.picture
       };
       if (deletePicture === 'true' || deletePicture === true) {
@@ -115,6 +116,7 @@ const updateUserProfile = [
         joinedDate: updatedUser.joinedDate,
         location: updatedUser.location,
         picture: updatedUser.picture,
+        description: updatedUser.description,
         name: updatedUser.name,
         email: updatedUser.email,
         phoneNumber: updatedUser.phoneNumber,
@@ -132,7 +134,11 @@ const updateUserProfile = [
         maxAge: remember ? 30 * 24 * 60 * 60 * 1000 : undefined,
         path: "/"
       });
-      return res.status(200).json({ message: "Update profile sukses", token });
+      return res.status(200).json({
+        message: "Update profile sukses",
+        token,
+        updatedUserPayload
+      });
     }
     catch (err) {
       console.error("🔥 Error updating profile:", err);
@@ -144,33 +150,26 @@ const updateUserProfile = [
 const updatePaymentNumber = async (req, res) => {
   const { paymentNumber } = req.body;
   console.log("Payment number:", paymentNumber);
-  const userId = req.user.id; // Get userId from middleware
+  const userId = req.user.id;
 
-  // Validasi format nomor pembayaran
   if (paymentNumber === undefined || paymentNumber === null) {
     return res.status(400).json({ error: "Nomor pembayaran harus diisi" });
   }
-
-  // Allow empty string for disconnecting account
   if (paymentNumber !== "" && !/^\d{8,16}$/.test(paymentNumber)) {
     return res.status(400).json({ error: "Format nomor pembayaran tidak valid" });
   }
 
   try {
-    // Get user data first
     const user = await User.findById(userId);
     if (!user) {
       console.log("User not found for payment update:", userId);
       return res.status(404).json({ error: "User tidak ditemukan" });
     }
-
-    // Update payment number
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       { $set: { paymentNumber: paymentNumber } },
       { new: true }
     );
-
     if (!updatedUser) {
       return res.status(404).json({ error: "User tidak ditemukan" });
     }
@@ -188,14 +187,10 @@ const updatePaymentNumber = async (req, res) => {
 
 const changePassword = async (req, res) => {
   const { password, newPassword, passwordConf } = req.body;
-
   const userId = req.user.id;
 
   const user = await User.findById(userId);
-  console.log("User:", user);
-  console.log("Password:", password);
-  console.log("New Password:", newPassword);
-  console.log("Password Confirmation:", passwordConf);
+  if (!user) return res, status(400).json({ error: `User id ${userId} tidak ditemukan` });
   const validPassword = await verifyHash(password, user.password);
   try {
     if (!validPassword) {
