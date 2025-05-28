@@ -63,10 +63,10 @@ export const userSchema = new mongoose.Schema({
     type: [String],
     default: [""]
   },
-  portofoliioUrl: {
+  portofolioUrl: {
     type: String,
     default: ""
-  }
+  },
 },
   { versionKey: false }
 );

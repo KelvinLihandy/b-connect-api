@@ -20,7 +20,7 @@ const contractSchema = new mongoose.Schema({
   },
   progress: {
     type: Number,
-    default: 1//steps
+    default: 0
   },
   startTime: {
     type: Date,
