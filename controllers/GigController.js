@@ -14,8 +14,11 @@ dotenv.config();
 const createGig = [
   upload.array('images', 3),
   async (req, res) => {
-    const { name, categories, description, creator, workflow, packages } = req.body;
+    console.log("the request is", req.body);
+    console.log(req.files)
+    const { name, categories, description, workflow, packages } = req.body;
     const gigImages = req.files;
+    const userId = req.user.id;
 
     if (!gigImages || gigImages.length === 0) {
       return res.status(400).json({ error: 'No images uploaded' });
@@ -24,11 +27,11 @@ const createGig = [
     try {
       const gigData = {
         name,
-        categories,
+        categories: JSON.parse(categories),
         description,
-        packages,
-        creator,
-        workflow,
+        packages: JSON.parse(packages),
+        creator: userId,
+        workflow: JSON.parse(workflow),
         images: ["temp"],
       };
       const newGig = await Gig.create(gigData);
@@ -87,10 +90,9 @@ const getGig = async (req, res) => {
 };
 
 const getGigUser = async (req, res) => {
-  const userId = userId; // Assuming user ID is available from authentication middleware
+  const userId = userId;
 
   try {
-    // Find all gigs created by this user, regardless of acceptance status
     const userGigs = await Gig.find({ creator: userId });
 
     if (!userGigs || userGigs.length === 0) {

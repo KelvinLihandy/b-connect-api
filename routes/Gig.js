@@ -6,7 +6,7 @@ const router = express.Router();
 router.post("/get-gig", getGig);
 router.post("/get-gig-count", getGigCount);
 router.post("/get-gig/:gigId", getGigDetails);
-router.post("/create-gig", createGig);
+router.post("/create-gig", authMiddleware, createGig);
 router.post("/get-disabled-gig-ids", authMiddleware, disabledGigIds);
 
 export default router;

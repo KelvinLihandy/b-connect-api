@@ -31,19 +31,6 @@ export const PackageSchema = new mongoose.Schema({
   { versionKey: false }
 );
 
-const workflowSchema = new mongoose.Schema({
-  flow: {
-    type: String,
-    required: true
-  },
-  description: {
-    type: String,
-    default: ""
-  }
-},
-  { _id: false },
-  { versionKey: false }
-);
 
 const gigSchema = new mongoose.Schema({
   accepted: {
@@ -72,9 +59,9 @@ const gigSchema = new mongoose.Schema({
     required: false,
     validate: {
       validator: function (val) {
-        return Array.isArray(val) && val.length >= 1 && val.length <= 4;
+        return Array.isArray(val) && val.length >= 1 && val.length <= 3;
       },
-      message: 'Gambar ada 1 - 4'
+      message: 'Gambar ada 1 - 3'
     }
   },
   description: {
@@ -91,7 +78,7 @@ const gigSchema = new mongoose.Schema({
     default: Date.now
   },
   workflow: {
-    type: [workflowSchema],
+    type: [String],
     required: true
   },
   rating: {

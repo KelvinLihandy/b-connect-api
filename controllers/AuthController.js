@@ -67,7 +67,8 @@ const login = async (req, res) => {
       reviews: user.reviews,
       type: user.type,
       phoneNumber: user.phoneNumber,
-      paymentNumber: user.paymentNumber
+      paymentNumber: user.paymentNumber,
+      portofolio: user.portofolioUrl
     }
     const token = jwt.sign(loggedUser, process.env.JWT_SECRET, { expiresIn: remember ? "30d" : "2h" });
     res.cookie("token", token, {

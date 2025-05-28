@@ -55,7 +55,7 @@ const getUser = async (req, res) => {
 const updateUserProfile = [
   upload.single('picture'),
   async (req, res) => {
-    const { name, email, phoneNumber, descr, deletePicture, remember } = req.body;
+    const { name, email, phoneNumber, descr, deletePicture, remember, porto } = req.body;
     const userId = req.user.id;
 
     const rfcEmailRegex = /^(?:[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}|(?:\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-zA-Z\-0-9]*[a-zA-Z0-9]:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f])\]))$/;
@@ -82,7 +82,8 @@ const updateUserProfile = [
         email: email || prevUser.email,
         phoneNumber: phoneNumber || prevUser.phoneNumber,
         description: descr !== undefined ? descr : prevUser.description,
-        picture: prevUser.picture
+        picture: prevUser.picture,
+        portofolioUrl: porto !== undefined ? porto : prevUser.portofolioUrl,
       };
       if (deletePicture === 'true' || deletePicture === true) {
         console.log("Deleting profile picture, setting to temp");
@@ -126,7 +127,8 @@ const updateUserProfile = [
         rating: updatedUser.rating,
         completes: updatedUser.completes,
         reviews: updatedUser.reviews,
-        type: updatedUser.type
+        type: updatedUser.type,
+        portofolio: updatedUser.portofolioUrl
       }
       const token = jwt.sign(updatedUserPayload, process.env.JWT_SECRET, { expiresIn: remember ? "30d" : "2h" });
       res.cookie("token", token, {
@@ -284,6 +286,7 @@ const getFreelancerData = async (req, res) => {
       gigId: undefined
     }));
 
+    
     return res.json({
       freelancer,
       freelancerGigs,
