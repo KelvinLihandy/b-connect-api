@@ -1,11 +1,13 @@
 import { upload } from "../config/multer.js";
 import { Gig } from "../models/Gig.js";
+import FreelancerRequest from "../models/FreelancerRequest.js";
 import Review from "../models/Review.js";
 import Transaction from "../models/Transaction.js";
 import { User } from "../models/User.js";
 import { uploadSingle } from "../utils/DriveUtil.js";
 import { cryptoDecrypt, hashing, verifyHash } from "../utils/HashUtils.js";
 import jwt from "jsonwebtoken";
+
 
 const getTrendingUsers = async (req, res) => {
   try {
@@ -285,7 +287,7 @@ const getFreelancerData = async (req, res) => {
       gigId: undefined
     }));
 
-    
+
     return res.json({
       freelancer,
       freelancerGigs,
@@ -309,7 +311,7 @@ const getUserStats = async (req, res) => {
 
     const totalFields = 8;
     let completedFields = 0;
-    
+
     if (user.name && user.name.trim() !== "") completedFields++;
     if (user.email && user.email.trim() !== "") completedFields++;
     if (user.phoneNumber && user.phoneNumber.trim() !== "") completedFields++;
@@ -321,11 +323,11 @@ const getUserStats = async (req, res) => {
 
     const profileCompletion = Math.round((completedFields / totalFields) * 100);
 
-    const userTransactions = await Transaction.find({ 
-      customer_email: user.email 
+    const userTransactions = await Transaction.find({
+      customer_email: user.email
     });
 
-    const completedTransactions = userTransactions.filter(t => 
+    const completedTransactions = userTransactions.filter(t =>
       t.status === "settlement" || t.status === "capture"
     );
 
@@ -363,16 +365,16 @@ const getUserPurchaseHistory = async (req, res) => {
       return res.status(400).json({ error: "User tidak ditemukan" });
     }
 
-    const totalTransactions = await Transaction.countDocuments({ 
-      customer_email: user.email 
+    const totalTransactions = await Transaction.countDocuments({
+      customer_email: user.email
     });
 
-    const transactions = await Transaction.find({ 
-      customer_email: user.email 
+    const transactions = await Transaction.find({
+      customer_email: user.email
     })
-    .sort({ _id: -1 })
-    .skip(skip)
-    .limit(limit);
+      .sort({ _id: -1 })
+      .skip(skip)
+      .limit(limit);
 
     const gigIds = transactions.map(t => t.gigId);
     const gigs = await Gig.find({ _id: { $in: gigIds } });
@@ -393,7 +395,7 @@ const getUserPurchaseHistory = async (req, res) => {
     const purchaseHistory = transactions.map(transaction => {
       const gig = gigMap[transaction.gigId.toString()];
       const seller = gig ? sellerMap[gig.creator.toString()] : null;
-      
+
       let status, statusType, deliveryTime;
       if (transaction.status === "pending") {
         status = "In Progress";
@@ -420,15 +422,15 @@ const getUserPurchaseHistory = async (req, res) => {
         id: transaction._id,
         title: gig ? gig.name : "Service not found",
         seller: seller ? seller.name : "Unknown Seller",
-        sellerRating: seller ? seller.rating || 4.5 : 4.5,
+        sellerRating: seller && typeof seller.rating === "number" ? seller.rating : 0,
         date: formattedDate,
         dateSort: orderDate,
         status,
         statusType,
         price: `Rp ${transaction.amount.toLocaleString('id-ID')}`,
-        rating: 0,
+        rating: gig && typeof gig.rating === "number" ? gig.rating : 0,
         deliveryTime,
-        category: gig && gig.categories ? gig.categories[0] : "General",
+        category: gig && gig.categories ? gig.categories : ["General"],
         image: gig && gig.images && gig.images.length > 0 ? gig.images[0] : null,
         orderNumber: transaction.orderId,
         description: gig ? gig.description.substring(0, 100) + "..." : "No description available"
@@ -499,7 +501,7 @@ const getUserReviews = async (req, res) => {
       sellerMap[seller._id.toString()] = seller;
     });
 
-    const transactions = await Transaction.find({ 
+    const transactions = await Transaction.find({
       customer_email: user.email,
       gigId: { $in: gigIds }
     });
@@ -512,9 +514,9 @@ const getUserReviews = async (req, res) => {
       const gig = gigMap[review.gigId.toString()];
       const seller = gig ? sellerMap[gig.creator.toString()] : null;
       const transaction = transactionMap[review.gigId.toString()];
-      
+
       const decryptedMessage = cryptoDecrypt(review.reviewMessage, review.iv);
-      
+
       const reviewDate = new Date(review.createdDate);
       const formattedDate = reviewDate.toLocaleDateString('en-US', {
         year: 'numeric',
@@ -561,16 +563,118 @@ const getUserReviews = async (req, res) => {
   }
 };
 
-export { 
-  getTrendingUsers, 
-  getUserInRooms, 
-  getUser, 
-  updateUserProfile, 
-  updatePaymentNumber, 
-  changePassword, 
-  uploadProfilePicture, 
+const checkRequestStatus = async (req, res) => {
+  const { remember } = req.body;
+  const userId = req.user.id;
+
+  try {
+    const requestData = await FreelancerRequest.findOne({ userId: userId });
+    if (!requestData) {
+      return res.status(404).json({ error: "Tidak ada request yang dibuat" });
+    }
+    else {
+      if (requestData.status == 0) {
+        return res.status(200).json({ message: "Request freelancer ongoing", status: 0 })
+      }
+      else if (requestData.status == 1) {
+        const updatedUser = await User.findByIdAndUpdate(
+          userId,
+          {
+            $set: {
+              access: true,
+              description: requestData.description,
+              type: requestData.categories
+            }
+          },
+          { new: true }
+        );
+        if (!updatedUser) {
+          console.log("User not found for update:", userId);
+          return res.status(404).json({ error: "User tidak ditemukan" });
+        }
+        const updatedUserPayload = {
+          id: updatedUser._id,
+          access: updatedUser.access,
+          joinedDate: updatedUser.joinedDate,
+          location: updatedUser.location,
+          picture: updatedUser.picture,
+          description: updatedUser.description,
+          name: updatedUser.name,
+          email: updatedUser.email,
+          phoneNumber: updatedUser.phoneNumber,
+          paymentNumber: updatedUser.paymentNumber,
+          rating: updatedUser.rating,
+          completes: updatedUser.completes,
+          reviews: updatedUser.reviews,
+          type: updatedUser.type,
+          portofolio: updatedUser.portofolioUrl
+        }
+        const token = jwt.sign(updatedUserPayload, process.env.JWT_SECRET, { expiresIn: remember ? "30d" : "2h" });
+        res.cookie("token", token, {
+          httpOnly: true,
+          secure: true,
+          sameSite: "None",
+          maxAge: remember ? 30 * 24 * 60 * 60 * 1000 : undefined,
+          path: "/"
+        });
+        return res.status(200).json({ message: "Request freelancer approved", status: 1 });
+      }
+      else if (requestData.status == 2) {
+        return res.status(200).json({ message: "Request freelancer rejected", status: 2 });
+      }
+      else return res.status(400).json({ error: "status out bound" });
+    }
+  } catch (error) {
+    console.error("🔥 Error request freelancer:", error);
+    return res.status(500).json({ error: "Gagal request freelancer" });
+  }
+}
+
+const createFreelancerRequest = [
+  upload.single('studentPicture'),
+  async (req, res) => {
+    const { categories, description } = req.body;
+    const studentPicture = req.file;
+    const userId = req.user.id;
+
+    if (!studentPicture) {
+      return res.status(400).json({ error: 'No images uploaded' });
+    }
+    try {
+      const requestData = {
+        userId: userId,
+        categories: JSON.parse(categories),
+        description,
+        studentIdPhoto: "temp",
+      };
+      const newFlRequest = await FreelancerRequest.create(requestData);
+      const imageId = await uploadSingle(studentPicture, newFlRequest.id, process.env.DRIVE_FLREQUEST_ID);
+      const imagedRequest = await FreelancerRequest.findOneAndUpdate(
+        { _id: newFlRequest._id },
+        { $set: { studentIdPhoto: imageId } },
+        { new: true }
+      );
+      if (!imagedRequest) return res.status(400).json({ error: "Fl Request id tidak ditemukan" });
+      return res.status(201).json({ message: "Freelancer Request berhasil dibuat", flReq: imagedRequest });
+    } catch (error) {
+      console.error("🔥 Error request freelancer:", error);
+      return res.status(500).json({ error: "Gagal request freelancer" });
+    }
+  }
+]
+
+export {
+  getTrendingUsers,
+  getUserInRooms,
+  getUser,
+  updateUserProfile,
+  updatePaymentNumber,
+  changePassword,
+  uploadProfilePicture,
   getFreelancerData,
   getUserStats,
   getUserPurchaseHistory,
-  getUserReviews
+  getUserReviews,
+  checkRequestStatus,
+  createFreelancerRequest
 };
