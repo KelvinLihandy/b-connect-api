@@ -397,7 +397,7 @@ const getUserPurchaseHistory = async (req, res) => {
       const seller = gig ? sellerMap[gig.creator.toString()] : null;
 
       let status, statusType, deliveryTime;
-      if (transaction.status === "pending") {
+      if (transaction.status === "pending" || transaction.status === "paid") {
         status = "In Progress";
         statusType = "progress";
         deliveryTime = "Processing payment";
