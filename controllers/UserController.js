@@ -582,6 +582,7 @@ const checkRequestStatus = async (req, res) => {
           {
             $set: {
               access: true,
+              location: requestData.location,
               description: requestData.description,
               type: requestData.categories
             }
@@ -633,7 +634,7 @@ const checkRequestStatus = async (req, res) => {
 const createFreelancerRequest = [
   upload.single('studentPicture'),
   async (req, res) => {
-    const { categories, description } = req.body;
+    const { location, categories, description } = req.body;
     const studentPicture = req.file;
     const userId = req.user.id;
 
@@ -643,6 +644,7 @@ const createFreelancerRequest = [
     try {
       const requestData = {
         userId: userId,
+        location,
         categories: JSON.parse(categories),
         description,
         studentIdPhoto: "temp",
