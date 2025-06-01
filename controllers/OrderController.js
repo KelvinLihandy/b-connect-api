@@ -3,6 +3,7 @@ import Contract from "../models/Contract.js";
 import Transaction from "../models/Transaction.js";
 import { Gig } from "../models/Gig.js";
 import { User } from "../models/User.js";
+import Review from "../models/Review.js";
 
 // Get order details by orderId
 const getOrderDetails = async (req, res) => {
@@ -92,21 +93,18 @@ const updateOrderProgress = async (req, res) => {
     const { orderId } = req.params;
     const { progress } = req.body;
 
-    // Find the contract
     const contract = await Contract.findOne({ orderId });
 
     if (!contract) {
       return res.status(404).json({ error: "Contract not found" });
     }
 
-    // Get the gig to check if current user is the seller
     const gig = await Gig.findById(contract.gigId);
 
     if (!gig) {
       return res.status(404).json({ error: "Gig not found" });
     }
 
-    // Verify that the current user is the seller (freelancer) of this gig
     if (gig.creator.toString() !== req.user.id) {
       return res.status(403).json({
         error: "You are not authorized to update this order's progress. Only the freelancer who created the gig can update the progress."
@@ -124,7 +122,6 @@ const updateOrderProgress = async (req, res) => {
       updateFields.finishedTime = new Date();
     }
 
-    // Once authorized, update the contract
     const updatedContract = await Contract.findOneAndUpdate(
       { orderId },
       { $set: updateFields },
@@ -177,8 +174,87 @@ const getAllOrders = async (req, res) => {
     return res.status(200).json({ orderList: referencedOrders });
   } catch (error) {
     console.error("🔥 Error fetch semua order contract:", error);
-    return res.status(500).json({ error: "Failed to get all orders" });
+    return res.status(500).json({ error: "Failed to get all orders" });  }
+};
+
+// Submit review and finish order
+const submitReview = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { rating, feedback } = req.body;
+
+    const contract = await Contract.findOne({ orderId });
+    if (!contract) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    const gig = await Gig.findById(contract.gigId);
+    if (!gig) {
+      return res.status(404).json({ error: "Gig not found" });
+    }
+
+    if (contract.userId.toString() !== req.user.id) {
+      return res.status(403).json({
+        error: "You are not authorized to review this order. Only the buyer can submit a review."
+      });
+    }
+
+    if (contract.progress !== 2) {
+      return res.status(400).json({
+        error: "Order must be delivered before submitting a review."
+      });
+    }
+
+    const review = new Review({
+      reviewerId: req.user.id,
+      rating: rating,
+      reviewMessage: feedback || "No feedback provided",
+      gigId: contract.gigId.toString()
+    });
+
+    await review.save();
+
+    const updatedContract = await Contract.findOneAndUpdate(
+      { orderId },
+      { 
+        $set: { 
+          progress: 3,
+          finishedTime: new Date()
+        }
+      },
+      { new: true }
+    );
+
+    // Update gig rating
+    // Get all reviews for this gig
+    const allReviews = await Review.find({ gigId: contract.gigId.toString() });
+    const averageRating = allReviews.reduce((sum, review) => sum + review.rating, 0) / allReviews.length;
+    
+    await Gig.findByIdAndUpdate(
+      contract.gigId,
+      { 
+        $set: { 
+          rating: Math.round(averageRating * 10) / 10,
+          sold: gig.sold + 1 
+        }
+      }
+    );
+
+    return res.status(200).json({
+      message: "Review submitted successfully and order finished",
+      contract: updatedContract,
+      review: {
+        _id: review._id,
+        rating: review.rating,
+        reviewMessage: feedback || "No feedback provided",
+        createdDate: review.createdDate
+      }
+    });
+
+  } catch (error) {
+    console.error("🔥 Error submitting review:", error);
+    return res.status(500).json({ error: "Failed to submit review" });
   }
 };
 
-export { getOrderDetails, updateOrderProgress, getAllOrders };
+export { getOrderDetails, updateOrderProgress, getAllOrders, submitReview };
