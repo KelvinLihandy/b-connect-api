@@ -284,12 +284,22 @@ const getFreelancerData = async (req, res) => {
       reviewerPicture: pictureMap[review.reviewerId.toString()] || "temp",
       reviewedGig: gigMap[review.gigId.toString()] || null,
       reviewerId: undefined,
-      gigId: undefined
-    }));
+      gigId: undefined    }));
 
+    let overallRating = 0;
+    if (reviews.length > 0) {
+      const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+      overallRating = Math.round((totalRating / reviews.length) * 10) / 10;
+    }
+
+    const freelancerWithRating = {
+      ...freelancer.toObject(),
+      rating: overallRating,
+      reviews: reviews.length
+    };
 
     return res.json({
-      freelancer,
+      freelancer: freelancerWithRating,
       freelancerGigs,
       reviews: decryptedReviews
     });
