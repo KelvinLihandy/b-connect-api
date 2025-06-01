@@ -67,15 +67,15 @@ const getOrderDetails = async (req, res) => {
           name: seller.name,
           id: seller._id
         }
-      },
-      buyer: {
+      },      buyer: {
+        _id: buyer._id,
         name: buyer.name,
         email: buyer.email
       },
       transaction: transaction ? {
         status: transaction.status,
         amount: transaction.amount,
-        paymentMethod: "GoPay" // Default payment method
+        paymentMethod: "Bank Transfer" 
       } : null
     };
 
@@ -223,10 +223,7 @@ const submitReview = async (req, res) => {
         }
       },
       { new: true }
-    );
-
-    // Update gig rating
-    // Get all reviews for this gig
+    );    
     const allReviews = await Review.find({ gigId: contract.gigId.toString() });
     const averageRating = allReviews.reduce((sum, review) => sum + review.rating, 0) / allReviews.length;
     
@@ -236,9 +233,29 @@ const submitReview = async (req, res) => {
         $set: { 
           rating: Math.round(averageRating * 10) / 10,
           sold: gig.sold + 1 
-        }
+        },
+        $inc: { reviewCount: 1 }
       }
-    );
+    );    const freelancerGigs = await Gig.find({ creator: gig.creator });
+    const allFreelancerReviews = await Review.find({
+      gigId: { $in: freelancerGigs.map(g => g._id) }
+    });
+    
+    const updateFields = {
+      $inc: { completes: 1 }
+    };
+    
+    if (allFreelancerReviews.length > 0) {
+      const freelancerTotalRating = allFreelancerReviews.reduce((sum, review) => sum + review.rating, 0);
+      const freelancerAverageRating = Math.round((freelancerTotalRating / allFreelancerReviews.length) * 10) / 10;
+      
+      updateFields.$set = {
+        rating: freelancerAverageRating,
+        reviews: allFreelancerReviews.length
+      };
+    }
+    
+    await User.findByIdAndUpdate(gig.creator, updateFields);
 
     return res.status(200).json({
       message: "Review submitted successfully and order finished",
