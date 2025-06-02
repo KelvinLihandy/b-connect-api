@@ -23,6 +23,10 @@ export const freelancerRequestSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  paymentNumber: {
+    type: String,
+    required: true
+  },
   studentIdPhoto: {
     type: String,
     default: ""
