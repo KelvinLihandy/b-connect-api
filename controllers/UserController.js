@@ -326,7 +326,7 @@ const getUserStats = async (req, res) => {
     });
 
     const completedTransactions = userTransactions.filter(t => 
-      t.status === "settlement" || t.status === "capture"
+      t.status === "settlement" || t.status === "capture" || t.status === "paid"
     );
 
     const totalOrders = userTransactions.length;
@@ -394,12 +394,15 @@ const getUserPurchaseHistory = async (req, res) => {
       const gig = gigMap[transaction.gigId.toString()];
       const seller = gig ? sellerMap[gig.creator.toString()] : null;
       
+      // ✅ FIXED: Status logic untuk handle "paid" status
       let status, statusType, deliveryTime;
       if (transaction.status === "pending") {
         status = "In Progress";
         statusType = "progress";
         deliveryTime = "Processing payment";
-      } else if (transaction.status === "settlement" || transaction.status === "capture") {
+      } else if (transaction.status === "settlement" || 
+                 transaction.status === "capture" || 
+                 transaction.status === "paid") {
         status = "Completed";
         statusType = "delivered";
         deliveryTime = "Delivered on time";
@@ -416,10 +419,20 @@ const getUserPurchaseHistory = async (req, res) => {
         day: 'numeric'
       });
 
+      // ✅ FIXED: Convert Google Drive ID to viewable URL
+      let imageUrl = null;
+      if (gig && gig.images && gig.images.length > 0) {
+        const imageId = gig.images[0];
+        if (imageId && imageId !== "temp" && imageId !== "null") {
+          imageUrl = `https://drive.google.com/uc?export=view&id=${imageId}`;
+        }
+      }
+
       return {
         id: transaction._id,
         title: gig ? gig.name : "Service not found",
         seller: seller ? seller.name : "Unknown Seller",
+        sellerId: seller ? seller._id : null,
         sellerRating: seller ? seller.rating || 4.5 : 4.5,
         date: formattedDate,
         dateSort: orderDate,
@@ -429,8 +442,9 @@ const getUserPurchaseHistory = async (req, res) => {
         rating: 0,
         deliveryTime,
         category: gig && gig.categories ? gig.categories[0] : "General",
-        image: gig && gig.images && gig.images.length > 0 ? gig.images[0] : null,
+        image: imageUrl,
         orderNumber: transaction.orderId,
+        serviceId: gig ? gig._id : null,
         description: gig ? gig.description.substring(0, 100) + "..." : "No description available"
       };
     });
@@ -522,10 +536,20 @@ const getUserReviews = async (req, res) => {
         day: 'numeric'
       });
 
+      // ✅ FIXED: Convert Google Drive ID to viewable URL
+      let imageUrl = null;
+      if (gig && gig.images && gig.images.length > 0) {
+        const imageId = gig.images[0];
+        if (imageId && imageId !== "temp" && imageId !== "null") {
+          imageUrl = `https://drive.google.com/uc?export=view&id=${imageId}`;
+        }
+      }
+
       return {
         id: review._id,
         title: gig ? gig.name : "Service not found",
         seller: seller ? seller.name : "Unknown Seller",
+        sellerId: seller ? seller._id : null,
         sellerRating: seller ? seller.rating || 4.5 : 4.5,
         orderId: transaction ? `${transaction.orderId} • ${formattedDate}` : `Order • ${formattedDate}`,
         dateSort: reviewDate,
@@ -534,7 +558,8 @@ const getUserReviews = async (req, res) => {
         price: transaction ? `Rp ${transaction.amount.toLocaleString('id-ID')}` : "Rp 0",
         category: gig && gig.categories ? gig.categories[0] : "General",
         deliveryTime: "Delivered on time",
-        image: gig && gig.images && gig.images.length > 0 ? gig.images[0] : null,
+        image: imageUrl,
+        serviceId: gig ? gig._id : null,
         helpful: Math.floor(Math.random() * 20) + 1,
         verified: true
       };
