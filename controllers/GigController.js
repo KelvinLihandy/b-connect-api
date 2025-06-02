@@ -196,7 +196,7 @@ const disabledGigIds = async (req, res) => {
     });
     const contracts = await Contract.find({
       userId: userId,
-      progress: { $lt: 3 } //update kalau budi mau lebih banyak progress contract
+      progress: { $lt: 3 }
     });
     const result = {};
     transactions.forEach(tx => {

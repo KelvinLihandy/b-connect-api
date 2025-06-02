@@ -5,6 +5,7 @@ import gigRoute from "./routes/Gig.js";
 import userRoute from "./routes/User.js";
 import chatRoute from "./routes/Chat.js";
 import contractRoute from "./routes/Contract.js"
+import orderRoute from "./routes/Order.js"
 import cors from "cors";
 import fs from "fs";
 import http from "http";
@@ -23,7 +24,10 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:5500',
-  'http://127.0.0.1:5500'
+  'http://127.0.0.1:5500',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'https://b-connect-nu.vercel.app',
 ];
 
 const corsOptions = {
@@ -63,6 +67,7 @@ app.use("/api/gig", gigRoute);
 app.use("/api/user", userRoute);
 app.use("/api/chat", chatRoute);
 app.use("/api/contract", contractRoute);
+app.use("/api/order", orderRoute);
 
 // Default Route
 app.get("/", (req, res) => {

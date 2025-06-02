@@ -25,6 +25,18 @@ const contractSchema = new mongoose.Schema({
   startTime: {
     type: Date,
     default: Date.now
+  },
+  progressTime: {
+    type: Date,
+    default: null
+  },
+  deliveredTime: {
+    type: Date,
+    default: null
+  },
+  finishedTime: {
+    type: Date,
+    default: null
   }
 },
   { versionKey: false }

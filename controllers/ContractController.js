@@ -143,11 +143,7 @@ const transactionNotification = async (req, res) => {
         await createContract(data.order_id, transaction.gigId, transaction.package, user);
       }
     }
-
-    // return res.status(200).json({
-    //   status: "success",
-    //   message: "ok"
-    // })
+    
     return res.status(200).send("Ok");
   }
   catch (err) {

@@ -9,7 +9,9 @@ import {
   getFreelancerData,
   getUserStats,
   getUserPurchaseHistory,
-  getUserReviews
+  getUserReviews,
+  createFreelancerRequest,
+  checkRequestStatus
 } from "../controllers/UserController.js";
 import authMiddleware from "../middleware/AuthMiddleware.js";
 
@@ -25,5 +27,7 @@ router.post("/get-freelancer-data/:id", getFreelancerData);
 router.post("/user-stats/:userId", authMiddleware, getUserStats);
 router.post("/purchase-history/:userId", authMiddleware, getUserPurchaseHistory);
 router.post("/user-reviews/:userId", authMiddleware, getUserReviews);
+router.post("/check-request-status", authMiddleware, checkRequestStatus);
+router.post("/request-freelancer", authMiddleware, createFreelancerRequest);
 
 export default router;
