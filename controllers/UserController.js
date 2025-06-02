@@ -585,7 +585,7 @@ const checkRequestStatus = async (req, res) => {
     else {
       if (requestData.status == 0) {
         return res.status(200).json({ message: "Request freelancer ongoing", status: 0 })
-      }
+      }      
       else if (requestData.status == 1) {
         const updatedUser = await User.findByIdAndUpdate(
           userId,
@@ -594,7 +594,8 @@ const checkRequestStatus = async (req, res) => {
               access: true,
               location: requestData.location,
               description: requestData.description,
-              type: requestData.categories
+              type: requestData.categories,
+              paymentNumber: requestData.paymentNumber
             }
           },
           { new: true }
@@ -644,12 +645,21 @@ const checkRequestStatus = async (req, res) => {
 const createFreelancerRequest = [
   upload.single('studentPicture'),
   async (req, res) => {
-    const { location, categories, description } = req.body;
+    const { location, categories, description, paymentNumber } = req.body;
     const studentPicture = req.file;
     const userId = req.user.id;
 
     if (!studentPicture) {
       return res.status(400).json({ error: 'No images uploaded' });
+    }
+    if (!paymentNumber || !paymentNumber.trim()) {
+      return res.status(400).json({ error: 'Payment number is required' });
+    }
+    if (!/^[0-9]+$/.test(paymentNumber.trim())) {
+      return res.status(400).json({ error: 'Payment number must contain only numbers' });
+    }
+    if (paymentNumber.trim().length < 8) {
+      return res.status(400).json({ error: 'Payment number must be at least 8 digits' });
     }
     try {
       const requestData = {
@@ -657,6 +667,7 @@ const createFreelancerRequest = [
         location,
         categories: JSON.parse(categories),
         description,
+        paymentNumber: paymentNumber.trim(),
         studentIdPhoto: "temp",
       };
       const newFlRequest = await FreelancerRequest.create(requestData);
