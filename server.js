@@ -11,7 +11,15 @@ import fs from "fs";
 import http from "http";
 import cookieParser from "cookie-parser";
 import { Server } from "socket.io";
-import { connectMongo, connectDrive, oauth2Client } from "./config/db.js";
+import {
+  oauth2Client,
+  drive,
+  connectMongo,
+  connectDrive,
+  saveTokens,
+  deleteTokens,
+  handleInvalidGrant,
+} from "./config/db.js";
 import { handleSocketChat } from "./controllers/ChatController.js";
 import { handleSocketNotification } from "./controllers/NotificationController.js";
 import { useAzureSocketIO } from "@azure/web-pubsub-socket.io";
@@ -74,22 +82,17 @@ app.get("/", (req, res) => {
   res.send("API is running...");
 });
 
-const storeTokens = (tokens) => {
-  fs.writeFileSync('tokens.json', JSON.stringify(tokens));
-};
-
-app.get('/oauth2callback', async (req, res) => {
+app.get('/auth/google/callback', async (req, res) => {
   const code = req.query.code;
 
   try {
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
-    console.log('Google Drive authenticated successfully!');
-    storeTokens(tokens);
-    res.send('Authentication successful! You can now use the app.');
+    saveTokens(tokens);
+    res.send('✅ Authentication successful');
   } catch (err) {
-    console.error('Error during authentication:', err);
-    res.status(500).send('Authentication failed');
+    console.error('❌ Callback error:', err);
+    res.status(500).send('Auth failed');
   }
 });
 

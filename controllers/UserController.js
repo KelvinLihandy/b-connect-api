@@ -13,8 +13,7 @@ const getTrendingUsers = async (req, res) => {
     const topUsers = await User.find({
       access: true
     }, "picture name type rating completes reviews")
-      .sort({ completes: -1 })
-      .limit(3);
+      .sort({ rating: -1, completes: -1 });
     return res.status(200).json(topUsers);
   } catch (error) {
     console.error("🔥 Gagal fetch:", error);
@@ -338,7 +337,7 @@ const getUserStats = async (req, res) => {
     });
 
     // ✅ FIXED: Include "paid" status in completed transactions
-    const completedTransactions = userTransactions.filter(t => 
+    const completedTransactions = userTransactions.filter(t =>
       t.status === "settlement" || t.status === "capture" || t.status === "paid"
     );
 
@@ -413,9 +412,9 @@ const getUserPurchaseHistory = async (req, res) => {
         status = "In Progress";
         statusType = "progress";
         deliveryTime = "Processing payment";
-      } else if (transaction.status === "settlement" || 
-                 transaction.status === "capture" || 
-                 transaction.status === "paid") {
+      } else if (transaction.status === "settlement" ||
+        transaction.status === "capture" ||
+        transaction.status === "paid") {
         status = "Completed";
         statusType = "delivered";
         deliveryTime = "Delivered on time";
@@ -611,7 +610,7 @@ const checkRequestStatus = async (req, res) => {
     else {
       if (requestData.status == 0) {
         return res.status(200).json({ message: "Request freelancer ongoing", status: 0 })
-      }      
+      }
       else if (requestData.status == 1) {
         const updatedUser = await User.findByIdAndUpdate(
           userId,
