@@ -544,7 +544,7 @@ const getUserReviews = async (req, res) => {
         rating: review.rating,
         reviewText: decryptedMessage,
         price: transaction ? `Rp ${transaction.amount.toLocaleString('id-ID')}` : "Rp 0",
-        category: gig && gig.categories ? gig.categories[0] : "General",
+        category: gig && gig.categories ? gig.categories : "General",
         deliveryTime: "Delivered on time",
         image: gig && gig.images && gig.images.length > 0 ? gig.images[0] : null,
         helpful: Math.floor(Math.random() * 20) + 1,
