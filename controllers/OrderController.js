@@ -67,7 +67,7 @@ const getOrderDetails = async (req, res) => {
           name: seller.name,
           id: seller._id
         }
-      },      buyer: {
+      }, buyer: {
         _id: buyer._id,
         name: buyer.name,
         email: buyer.email
@@ -75,7 +75,7 @@ const getOrderDetails = async (req, res) => {
       transaction: transaction ? {
         status: transaction.status,
         amount: transaction.amount,
-        paymentMethod: "Bank Transfer" 
+        paymentMethod: "Bank Transfer"
       } : null
     };
 
@@ -139,6 +139,24 @@ const updateOrderProgress = async (req, res) => {
   }
 };
 
+const getCurrentOrder = async (req, res) => {
+  const { gigId } = req.params;
+  const userId = req.user.id;
+
+  try {
+    const currentOrder = await Contract.findOne({
+      userId: userId,
+      progress: { $lt: 3 },
+      gigId: gigId
+    });
+    console.log("Current order found:", currentOrder);
+    return res.status(200).json(currentOrder);
+  } catch (error) {
+    console.error("🔥 Error get current contract order:", error);
+    return res.status(500).json({ error: "Failed get current contract order" });
+  }
+}
+
 const getAllOrders = async (req, res) => {
   const userId = req.user.id;
 
@@ -174,10 +192,10 @@ const getAllOrders = async (req, res) => {
     return res.status(200).json({ orderList: referencedOrders });
   } catch (error) {
     console.error("🔥 Error fetch semua order contract:", error);
-    return res.status(500).json({ error: "Failed to get all orders" });  }
+    return res.status(500).json({ error: "Failed to get all orders" });
+  }
 };
 
-// Submit review and finish order
 const submitReview = async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -216,45 +234,45 @@ const submitReview = async (req, res) => {
 
     const updatedContract = await Contract.findOneAndUpdate(
       { orderId },
-      { 
-        $set: { 
+      {
+        $set: {
           progress: 3,
           finishedTime: new Date()
         }
       },
       { new: true }
-    );    
+    );
     const allReviews = await Review.find({ gigId: contract.gigId.toString() });
     const averageRating = allReviews.reduce((sum, review) => sum + review.rating, 0) / allReviews.length;
-    
+
     await Gig.findByIdAndUpdate(
       contract.gigId,
-      { 
-        $set: { 
+      {
+        $set: {
           rating: Math.round(averageRating * 10) / 10,
-          sold: gig.sold + 1 
+          sold: gig.sold + 1
         },
         $inc: { reviewCount: 1 }
       }
-    );    const freelancerGigs = await Gig.find({ creator: gig.creator });
+    ); const freelancerGigs = await Gig.find({ creator: gig.creator });
     const allFreelancerReviews = await Review.find({
       gigId: { $in: freelancerGigs.map(g => g._id) }
     });
-    
+
     const updateFields = {
       $inc: { completes: 1 }
     };
-    
+
     if (allFreelancerReviews.length > 0) {
       const freelancerTotalRating = allFreelancerReviews.reduce((sum, review) => sum + review.rating, 0);
       const freelancerAverageRating = Math.round((freelancerTotalRating / allFreelancerReviews.length) * 10) / 10;
-      
+
       updateFields.$set = {
         rating: freelancerAverageRating,
         reviews: allFreelancerReviews.length
       };
     }
-    
+
     await User.findByIdAndUpdate(gig.creator, updateFields);
 
     return res.status(200).json({
@@ -274,4 +292,4 @@ const submitReview = async (req, res) => {
   }
 };
 
-export { getOrderDetails, updateOrderProgress, getAllOrders, submitReview };
+export { getOrderDetails, updateOrderProgress, getAllOrders, getCurrentOrder, submitReview };

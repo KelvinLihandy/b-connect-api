@@ -6,15 +6,15 @@ const notificationSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  messageId: { //untuk chat jadi pas create masukin juga ke sini _id message abis kelar dibuat
+  messageId: {
     type: String,
   },
   messageType: {
     type: String,
-    enum: ["chat", "contract", "promo"],
+    enum: ["chat"],
     required: true
   },
-  content: { //bukan chat
+  content: {
     type: String,
   },
   readAt: {

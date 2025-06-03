@@ -21,14 +21,35 @@ const oauth2Client = new google.auth.OAuth2(
   process.env.REDIRECT_URI
 );
 
+const TOKEN_PATH = '/home/site/tokens.json';
+
 const drive = google.drive({
   version: 'v3',
   auth: oauth2Client,
 });
 
+const saveTokens = (tokens) => {
+  try {
+    fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens));
+    console.log('✅ Tokens saved');
+  } catch (err) {
+    console.error('❌ Error saving tokens:', err);
+  }
+};
+const deleteTokens = () => {
+  try {
+    if (fs.existsSync(TOKEN_PATH)) {
+      fs.unlinkSync(TOKEN_PATH);
+      console.log('🧹 Tokens deleted');
+    }
+  } catch (err) {
+    console.error('❌ Failed to delete tokens:', err);
+  }
+};
+
 const getStoredTokens = () => {
   try {
-    const tokens = fs.readFileSync('tokens.json');
+    const tokens = fs.readFileSync("/home/site/tokens.json");
     return JSON.parse(tokens);
   } catch (err) {
     return null;
@@ -36,22 +57,32 @@ const getStoredTokens = () => {
 };
 
 const connectDrive = async () => {
-  try {
-    const tokens = await getStoredTokens();
-    if (tokens) {
-      oauth2Client.setCredentials(tokens);
-      console.log('✅ Google Drive authenticated');
-    } else {
-      const authUrl = oauth2Client.generateAuthUrl({
-        access_type: 'offline',
-        prompt: 'consent',
-        scope: ['https://www.googleapis.com/auth/drive'],
-      });
-      console.log('Visit this URL to authenticate:', authUrl);
-    }
-  } catch (err) {
-    console.error('Authentication failed:', err);
+  const tokens = getStoredTokens();
+  if (tokens) {
+    oauth2Client.setCredentials(tokens);
+    console.log('✅ Google Drive authenticated with stored token');
+  } else {
+    const authUrl = oauth2Client.generateAuthUrl({
+      access_type: 'offline',
+      prompt: 'consent',
+      scope: ['https://www.googleapis.com/auth/drive'],
+    });
+    console.log('👉 Visit this URL to authenticate:', authUrl);
   }
-}
+};
 
-export { connectMongo, connectDrive, oauth2Client, drive }
+const handleInvalidGrant = async () => {
+  console.warn('⚠️ Invalid grant. Re-auth required.');
+  deleteTokens();
+  await connectDrive();
+};
+
+export {
+  oauth2Client,
+  drive,
+  connectMongo,
+  connectDrive,
+  saveTokens,
+  deleteTokens,
+  handleInvalidGrant,
+}
