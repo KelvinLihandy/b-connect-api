@@ -14,6 +14,8 @@ dotenv.config();
 //   clien
 // });
 
+
+//unused
 const createTransaction = async (req, res) => {
   const { gigId, selectedPackage } = req.body;
   const user = req.user;
@@ -82,7 +84,7 @@ const createTransaction = async (req, res) => {
   });
 }
 
-
+//unused
 const transactionNotification = async (req, res) => {
   const data = req.body;
 
