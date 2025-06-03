@@ -60,6 +60,7 @@ const getOrderDetails = async (req, res) => {
       progressTime: contract.progressTime,
       deliveredTime: contract.deliveredTime,
       finishedTime: contract.finishedTime,
+      proofId: contract.proofId,
       gigInfo: {
         title: gig.title,
         image: gig.images && gig.images.length > 0 ? gig.images[0] : null,
