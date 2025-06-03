@@ -11,10 +11,12 @@ import {
   getUserPurchaseHistory,
   getUserReviews,
   createFreelancerRequest,
-  checkRequestStatus
+  checkRequestStatus,
+  submitReview,
+  getReviewAnalytics
 } from "../controllers/UserController.js";
 import authMiddleware from "../middleware/AuthMiddleware.js";
-
+import ReviewRateLimit from "../middleware/reviewRateLimit.js";
 const router = express.Router();
 
 router.post("/upload-profile-picture", uploadProfilePicture);
@@ -29,5 +31,7 @@ router.post("/purchase-history/:userId", authMiddleware, getUserPurchaseHistory)
 router.post("/user-reviews/:userId", authMiddleware, getUserReviews);
 router.post("/check-request-status", authMiddleware, checkRequestStatus);
 router.post("/request-freelancer", authMiddleware, createFreelancerRequest);
+router.post("/submit-review", authMiddleware, ReviewRateLimit, submitReview);
+router.post("/review-analytics/:userId", authMiddleware, getReviewAnalytics);
 
 export default router;
