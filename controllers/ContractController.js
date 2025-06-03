@@ -177,6 +177,7 @@ const createContract = [
         proofId: proofId
       });
       await newContract.save();
+      console.log("new contract created", newContract);
       return res.status(201).json(newContract);
     }
     catch (err) {

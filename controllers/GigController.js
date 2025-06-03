@@ -185,4 +185,17 @@ const getGigCount = async (req, res) => {
   }
 };
 
-export { createGig, getGig, getGigDetails, getGigUser, getGigCount }
+const getGigCreator = async (req, res) => {
+  const { gigId } = req.params;
+
+  try {
+    const gig = await Gig.findById(gigId);
+    const creator = await User.findById(gig.creator);
+    return res.status(200).json(creator);
+  } catch (err) {
+    console.error("🔥 Error saat menghitung top gig:", err);
+    return res.status(500).json({ error: "Gagal menghitung top gig." });
+  }
+}
+
+export { createGig, getGig, getGigDetails, getGigUser, getGigCount, getGigCreator }
