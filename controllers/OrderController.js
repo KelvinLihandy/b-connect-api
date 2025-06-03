@@ -292,4 +292,20 @@ const submitReview = async (req, res) => {
   }
 };
 
-export { getOrderDetails, updateOrderProgress, getAllOrders, getCurrentOrder, submitReview };
+const getUnfinishedContracts = async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    const unfinishedContracts = await Contract.find({
+      userId: userId,
+      progress: { $lt: 3 }
+    });
+
+    return res.status(200).json(unfinishedContracts)
+  } catch (err) {
+    console.error("🔥 Error saat mencari gigId disable:", err);
+    return res.status(500).json({ error: "Gagal memproses gigId disable." });
+  }
+}
+
+export { getOrderDetails, updateOrderProgress, getAllOrders, getCurrentOrder, submitReview, getUnfinishedContracts };

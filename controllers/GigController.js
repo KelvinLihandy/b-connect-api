@@ -185,35 +185,4 @@ const getGigCount = async (req, res) => {
   }
 };
 
-const disabledGigIds = async (req, res) => {
-  const userEmail = req.user.email;
-  const userId = req.user.id;
-
-  try {
-    const transactions = await Transaction.find({
-      customer_email: userEmail,
-      status: "pending"
-    });
-    const contracts = await Contract.find({
-      userId: userId,
-      progress: { $lt: 3 }
-    });
-    const result = {};
-    transactions.forEach(tx => {
-      result[tx.gigId] = result[tx.gigId] || [];
-      result[tx.gigId].push("transaction-pending");
-    });
-    contracts.forEach(contract => {
-      result[contract.gigId] = result[contract.gigId] || [];
-      result[contract.gigId].push("contract-in-progress");
-    });
-    console.log("disabled gigs", result);
-
-    return res.status(200).json(result);
-  } catch (err) {
-    console.error("🔥 Error saat mencari gigId disable:", err);
-    return res.status(500).json({ error: "Gagal memproses gigId disable." });
-  }
-}
-
-export { createGig, getGig, getGigDetails, getGigUser, getGigCount, disabledGigIds }
+export { createGig, getGig, getGigDetails, getGigUser, getGigCount }
