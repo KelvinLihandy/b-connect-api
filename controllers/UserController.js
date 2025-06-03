@@ -353,7 +353,7 @@ const getUserStats = async (req, res) => {
     const totalOrders = userTransactions.length;
     const totalSpent = completedTransactions.reduce((sum, t) => sum + t.amount, 0);
     const formattedTotalSpent = `Rp ${totalSpent.toLocaleString('id-ID')}`;
-    const memberSince = new Date(user.joinedDate).getFullYear().toString();
+    const memberSince = user.joinedDate ? new Date(user.joinedDate).getFullYear().toString() : new Date().getFullYear().toString();
     const activeVouchers = "0";
 
     const stats = {
@@ -394,7 +394,10 @@ const processGoogleDriveImage = (imageId) => {
   };
 };
 
+// FIXED: No more "processing payment" status
 const getTransactionStatus = (transaction) => {
+  console.log("🔥 USING NEW getTransactionStatus FUNCTION"); // ADD THIS LINE
+  console.log("Transaction status:", transaction.status);
   const status = transaction.status?.toLowerCase();
   
   switch (status) {
@@ -403,17 +406,11 @@ const getTransactionStatus = (transaction) => {
     case "paid":
     case "success":
     case "completed":
+      console.log("✅ Status: Completed");
       return {
         status: "Completed",
         statusType: "delivered",
         deliveryTime: "Delivered on time"
-      };
-    case "pending":
-    case "authorize":
-      return {
-        status: "In Progress",
-        statusType: "progress",
-        deliveryTime: "Processing payment"
       };
     case "cancelled":
     case "canceled":
@@ -426,27 +423,20 @@ const getTransactionStatus = (transaction) => {
         statusType: "cancelled",
         deliveryTime: "Order cancelled"
       };
+    case "pending":
+    case "authorize":
     default:
-      const createdDate = new Date(transaction._id.getTimestamp());
-      const now = new Date();
-      const hoursDiff = (now - createdDate) / (1000 * 60 * 60);
-      
-      if (hoursDiff > 24 && transaction.amount > 0) {
-        return {
-          status: "Completed",
-          statusType: "delivered",
-          deliveryTime: "Delivered"
-        };
-      } else {
-        return {
-          status: "In Progress",
-          statusType: "progress",
-          deliveryTime: "Processing order"
-        };
-      }
+      // If user can see the transaction, payment is already processed
+      // We don't show "processing payment" anymore
+      return {
+        status: "In Progress",
+        statusType: "progress",
+        deliveryTime: "Work in progress"
+      };
   }
 };
 
+// FIXED: Consistent data format for purchase history
 const getUserPurchaseHistory = async (req, res) => {
   const { userId } = req.params;
   const page = parseInt(req.query.page) || 1;
@@ -461,12 +451,10 @@ const getUserPurchaseHistory = async (req, res) => {
 
     let transactions = [];
     
-    // Strategy 1: Exact email match
     transactions = await Transaction.find({
       customer_email: user.email
     }).sort({ _id: -1 });
     
-    // Strategy 2: Through reviews if no direct transactions found
     if (transactions.length === 0) {
       const userReviews = await Review.find({ reviewerId: userId });
       
@@ -495,7 +483,6 @@ const getUserPurchaseHistory = async (req, res) => {
 
     const paginatedTransactions = transactions.slice(skip, skip + limit);
 
-    // Get gigs and sellers
     const gigIds = paginatedTransactions.map(t => t.gigId);
     const gigs = await Gig.find({ _id: { $in: gigIds } });
     const gigMap = {};
@@ -512,7 +499,6 @@ const getUserPurchaseHistory = async (req, res) => {
       sellerMap[seller._id.toString()] = seller;
     });
 
-    // Check which transactions have reviews
     const existingReviews = await Review.find({
       reviewerId: userId,
       gigId: { $in: gigIds }
@@ -546,6 +532,7 @@ const getUserPurchaseHistory = async (req, res) => {
       return {
         id: transaction._id,
         orderId: transaction.orderId,
+        orderNumber: transaction.orderId, // Added for consistency
         serviceId: gig ? gig._id : null,
         title: gig ? gig.name : "Service not found",
         seller: seller ? seller.name : "Unknown Seller",
@@ -556,6 +543,8 @@ const getUserPurchaseHistory = async (req, res) => {
         status: statusInfo.status,
         statusType: statusInfo.statusType,
         orderStatus: statusInfo.statusType,
+        paymentStatus: statusInfo.statusType === 'delivered' ? 'settlement' : 
+                      statusInfo.statusType === 'cancelled' ? 'failed' : 'paid',
         completed: statusInfo.statusType === 'delivered',
         delivered: statusInfo.statusType === 'delivered',
         price: `Rp ${transaction.amount.toLocaleString('id-ID')}`,
@@ -563,14 +552,14 @@ const getUserPurchaseHistory = async (req, res) => {
         rating: userRating,
         hasReview: hasReview,
         deliveryTime: statusInfo.deliveryTime,
-        category: gig && gig.categories ? gig.categories[0] : "General",
+        category: gig && gig.categories ? gig.categories : ["General"],
         image: imageUrls ? imageUrls.primary : null,
         imageUrls: imageUrls,
         description: gig ? gig.description.substring(0, 100) + "..." : "No description available"
       };
     });
 
-    // Sort by status priority and date
+    // Sort: In Progress first, then Completed, then Cancelled
     purchaseHistory.sort((a, b) => {
       const statusPriority = { 'progress': 0, 'delivered': 1, 'cancelled': 2 };
       const aPriority = statusPriority[a.statusType] || 3;
@@ -604,6 +593,7 @@ const getUserPurchaseHistory = async (req, res) => {
   }
 };
 
+// FIXED: Consistent data format matching purchase history
 const getUserReviews = async (req, res) => {
   const { userId } = req.params;
   const page = parseInt(req.query.page) || 1;
@@ -666,24 +656,41 @@ const getUserReviews = async (req, res) => {
         imageUrls = processGoogleDriveImage(gig.images[0]);
       }
 
+      // Consistent format with purchase history
       return {
         id: review._id,
-        title: gig ? gig.name : "Service not found",
+        serviceId: gig ? gig._id : null,
+        title: gig ? gig.name : "Service not found", // Matches purchase history
+        serviceTitle: gig ? gig.name : "Service not found", // For frontend compatibility
         seller: seller ? seller.name : "Unknown Seller",
+        serviceSeller: seller ? seller.name : "Unknown Seller", // For frontend compatibility
         sellerId: seller ? seller._id : null,
         sellerRating: seller ? (seller.rating || 4.5) : 4.5,
-        orderId: transaction ? `${transaction.orderId} • ${formattedDate}` : `Order • ${formattedDate}`,
+        orderId: transaction ? transaction.orderId : 'N/A',
+        orderNumber: transaction ? transaction.orderId : 'N/A', // Added for consistency
+        date: formattedDate,
+        reviewDate: review.createdDate, // ISO format for frontend
         dateSort: reviewDate,
         rating: review.rating,
+        userRating: review.rating, // For frontend compatibility
         reviewText: decryptedMessage,
         price: transaction ? `Rp ${transaction.amount.toLocaleString('id-ID')}` : "Rp 0",
-        category: gig && gig.categories ? gig.categories[0] : "General",
-        deliveryTime: "Delivered on time",
+        servicePrice: transaction ? `Rp ${transaction.amount.toLocaleString('id-ID')}` : "Rp 0", // For frontend compatibility
+        amount: transaction ? transaction.amount : 0,
+        category: gig && gig.categories ? gig.categories : ["General"],
+        deliveryTime: "Delivered on time", // Reviews only exist for completed orders
+        delivery: "Delivered on time", // Alternative field name
         image: imageUrls ? imageUrls.primary : null,
         imageUrls: imageUrls,
-        serviceId: gig ? gig._id : null,
-        helpful: Math.floor(Math.random() * 20) + 1,
-        verified: true
+        description: gig ? gig.description.substring(0, 100) + "..." : "Professional service provided", // Added description
+        serviceDescription: gig ? gig.description.substring(0, 100) + "..." : "Professional service provided", // For frontend compatibility
+        verified: true,
+        orderStatus: 'completed', // Reviews only exist for completed orders
+        status: 'Completed',
+        statusType: 'delivered',
+        completed: true,
+        delivered: true,
+        helpful: Math.floor(Math.random() * 20) + 1
       };
     });
 
@@ -723,7 +730,6 @@ const submitReview = async (req, res) => {
   const userId = req.user.id;
 
   try {
-    // Validation
     if (!orderId || !serviceId || !rating || !reviewText) {
       return res.status(400).json({ 
         error: "Order ID, Service ID, rating, dan review text harus diisi" 
@@ -742,19 +748,16 @@ const submitReview = async (req, res) => {
       });
     }
 
-    // Check if user exists
     const user = await User.findById(userId);
     if (!user) {
       return res.status(400).json({ error: "User tidak ditemukan" });
     }
 
-    // Check if gig/service exists
     const gig = await Gig.findById(serviceId);
     if (!gig) {
       return res.status(400).json({ error: "Service tidak ditemukan" });
     }
 
-    // Verify transaction exists and belongs to user
     const transaction = await Transaction.findOne({
       orderId: orderId,
       gigId: serviceId,
@@ -767,7 +770,6 @@ const submitReview = async (req, res) => {
       });
     }
 
-    // Check if transaction is completed
     const validStatuses = ["settlement", "capture", "paid", "success", "completed"];
     if (!validStatuses.includes(transaction.status?.toLowerCase())) {
       return res.status(400).json({ 
@@ -775,7 +777,6 @@ const submitReview = async (req, res) => {
       });
     }
 
-    // Check if review already exists
     const existingReview = await Review.findOne({
       reviewerId: userId,
       gigId: serviceId
@@ -787,7 +788,6 @@ const submitReview = async (req, res) => {
       });
     }
 
-    // Create new review
     const reviewData = {
       reviewerId: userId,
       gigId: serviceId,
@@ -804,10 +804,8 @@ const submitReview = async (req, res) => {
       });
     }
 
-    // Update seller's rating and review count
     if (sellerId) {
       try {
-        // Get all reviews for this seller's gigs
         const sellerGigs = await Gig.find({ creator: sellerId });
         const sellerGigIds = sellerGigs.map(g => g._id);
         
@@ -831,7 +829,6 @@ const submitReview = async (req, res) => {
       }
     }
 
-    // Prepare response data
     const responseReview = {
       id: newReview._id,
       reviewText: reviewText.trim(),
@@ -846,7 +843,6 @@ const submitReview = async (req, res) => {
       verified: true
     };
 
-    // Get seller name if available
     if (sellerId) {
       const seller = await User.findById(sellerId, 'name');
       if (seller) {
@@ -877,18 +873,15 @@ const getReviewAnalytics = async (req, res) => {
       return res.status(400).json({ error: "User tidak ditemukan" });
     }
 
-    // Get user's reviews
     const userReviews = await Review.find({ reviewerId: userId });
     const totalReviews = userReviews.length;
 
-    // Calculate average rating given by user
     let avgRatingGiven = 0;
     if (totalReviews > 0) {
       const totalRating = userReviews.reduce((sum, review) => sum + review.rating, 0);
       avgRatingGiven = Math.round((totalRating / totalReviews) * 10) / 10;
     }
 
-    // Get rating distribution
     const ratingDistribution = {
       5: userReviews.filter(r => r.rating === 5).length,
       4: userReviews.filter(r => r.rating === 4).length,
@@ -897,7 +890,6 @@ const getReviewAnalytics = async (req, res) => {
       1: userReviews.filter(r => r.rating === 1).length
     };
 
-    // Get recent review trends (last 30 days)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
