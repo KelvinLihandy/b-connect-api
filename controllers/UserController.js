@@ -2,7 +2,7 @@ import { upload } from "../config/multer.js";
 import { Gig } from "../models/Gig.js";
 import FreelancerRequest from "../models/FreelancerRequest.js";
 import Review from "../models/Review.js";
-import Transaction from "../models/Transaction.js";
+import Contract from "../models/Contract.js";
 import { User } from "../models/User.js";
 import { uploadSingle } from "../utils/DriveUtil.js";
 import { cryptoDecrypt, hashing, verifyHash } from "../utils/HashUtils.js";
@@ -57,7 +57,7 @@ const updateUserProfile = [
     const { name, email, phoneNumber, descr, deletePicture, remember, porto } = req.body;
     const userId = req.user.id;
 
-    const rfcEmailRegex = /^(?:[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}|(?:\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-zA-Z\-0-9]*[a-zA-Z0-9]:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f])\]))$/;
+    const rfcEmailRegex = /^(?:[a-zA-Z0-9!#$%&'+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'+/=?^_`{|}~-]+)|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])")@(?:(?:[a-zA-Z0-9](?:[a-zA-Z0-9-][a-zA-Z0-9])?\.)+[a-zA-Z]{2,}|(?:\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-zA-Z\-0-9][a-zA-Z0-9]:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f])\]))$/;
     
     if (!name && !email && !phoneNumber && !req.file && !deletePicture) {
       return res.status(400).json({ error: "Minimal satu field harus diupdate" });
@@ -342,16 +342,22 @@ const getUserStats = async (req, res) => {
 
     const profileCompletion = Math.round((completedFields / totalFields) * 100);
 
-    const userTransactions = await Transaction.find({
-      customer_email: user.email
+    // Updated to use Contract model instead of Transaction
+    const userContracts = await Contract.find({
+      userId: userId
     });
 
-    const completedTransactions = userTransactions.filter(t =>
-      t.status === "settlement" || t.status === "capture" || t.status === "paid"
+    const completedContracts = userContracts.filter(contract =>
+      contract.progress === 3 // Assuming progress 3 means completed
     );
 
-    const totalOrders = userTransactions.length;
-    const totalSpent = completedTransactions.reduce((sum, t) => sum + t.amount, 0);
+    const totalOrders = userContracts.length;
+    
+    // Calculate total spent from contract packages
+    const totalSpent = completedContracts.reduce((sum, contract) => {
+      return sum + (contract.package?.price || 0);
+    }, 0);
+    
     const formattedTotalSpent = `Rp ${totalSpent.toLocaleString('id-ID')}`;
     const memberSince = user.joinedDate ? new Date(user.joinedDate).getFullYear().toString() : new Date().getFullYear().toString();
     const activeVouchers = "0";
@@ -394,49 +400,46 @@ const processGoogleDriveImage = (imageId) => {
   };
 };
 
-// FIXED: No more "processing payment" status
-const getTransactionStatus = (transaction) => {
-  console.log("🔥 USING NEW getTransactionStatus FUNCTION"); // ADD THIS LINE
-  console.log("Transaction status:", transaction.status);
-  const status = transaction.status?.toLowerCase();
+// Updated to work with Contract model
+const getContractStatus = (contract) => {
+  console.log("🔥 Contract progress:", contract.progress);
   
-  switch (status) {
-    case "settlement":
-    case "capture":
-    case "paid":
-    case "success":
-    case "completed":
-      console.log("✅ Status: Completed");
+  // Contract progress-based status
+  switch (contract.progress) {
+    case 0:
       return {
-        status: "Completed",
-        statusType: "delivered",
-        deliveryTime: "Delivered on time"
+        status: "Unconfirmed",
+        statusType: "pending",
+        deliveryTime: "Waiting for seller acceptance"
       };
-    case "cancelled":
-    case "canceled":
-    case "failed":
-    case "expire":
-    case "deny":
-    case "refund":
-      return {
-        status: "Cancelled",
-        statusType: "cancelled",
-        deliveryTime: "Order cancelled"
-      };
-    case "pending":
-    case "authorize":
-    default:
-      // If user can see the transaction, payment is already processed
-      // We don't show "processing payment" anymore
+    case 1:
       return {
         status: "In Progress",
-        statusType: "progress",
+        statusType: "progress", 
         deliveryTime: "Work in progress"
+      };
+    case 2:
+      return {
+        status: "Delivered",
+        statusType: "review",
+        deliveryTime: "Awaiting your review"
+      };
+    case 3:
+      return {
+        status: "Completed",
+        statusType: "completed",
+        deliveryTime: "Order completed"
+      };
+    default:
+      return {
+        status: "Unknown Status",
+        statusType: "unknown",
+        deliveryTime: "Status unclear"
       };
   }
 };
 
-// FIXED: Consistent data format for purchase history
+// Updated for Contract model
 const getUserPurchaseHistory = async (req, res) => {
   const { userId } = req.params;
   const page = parseInt(req.query.page) || 1;
@@ -449,26 +452,14 @@ const getUserPurchaseHistory = async (req, res) => {
       return res.status(400).json({ error: "User tidak ditemukan" });
     }
 
-    let transactions = [];
+    // Find contracts for this user
+    let contracts = await Contract.find({
+      userId: userId
+    }).sort({ startTime: -1 });
     
-    transactions = await Transaction.find({
-      customer_email: user.email
-    }).sort({ _id: -1 });
-    
-    if (transactions.length === 0) {
-      const userReviews = await Review.find({ reviewerId: userId });
-      
-      if (userReviews.length > 0) {
-        const reviewGigIds = userReviews.map(r => r.gigId);
-        transactions = await Transaction.find({
-          gigId: { $in: reviewGigIds }
-        }).sort({ _id: -1 });
-      }
-    }
-
-    const totalTransactions = transactions.length;
-    
-    if (totalTransactions === 0) {
+    const totalContracts = contracts.length;
+    console.log("Total contracts found:", totalContracts);
+    if (totalContracts === 0) {
       return res.status(200).json({
         purchaseHistory: [],
         pagination: {
@@ -481,9 +472,9 @@ const getUserPurchaseHistory = async (req, res) => {
       });
     }
 
-    const paginatedTransactions = transactions.slice(skip, skip + limit);
+    const paginatedContracts = contracts.slice(skip, skip + limit);
 
-    const gigIds = paginatedTransactions.map(t => t.gigId);
+    const gigIds = paginatedContracts.map(contract => contract.gigId);
     const gigs = await Gig.find({ _id: { $in: gigIds } });
     const gigMap = {};
     gigs.forEach(gig => {
@@ -499,6 +490,7 @@ const getUserPurchaseHistory = async (req, res) => {
       sellerMap[seller._id.toString()] = seller;
     });
 
+    // Check for existing reviews
     const existingReviews = await Review.find({
       reviewerId: userId,
       gigId: { $in: gigIds }
@@ -509,15 +501,15 @@ const getUserPurchaseHistory = async (req, res) => {
       userRatings[review.gigId.toString()] = review.rating;
     });
 
-    const purchaseHistory = paginatedTransactions.map(transaction => {
-      const gig = gigMap[transaction.gigId.toString()];
+    const purchaseHistory = paginatedContracts.map(contract => {
+      const gig = gigMap[contract.gigId.toString()];
       const seller = gig ? sellerMap[gig.creator.toString()] : null;
-      const hasReview = reviewedGigIds.has(transaction.gigId.toString());
-      const userRating = userRatings[transaction.gigId.toString()] || 0;
+      const hasReview = reviewedGigIds.has(contract.gigId.toString());
+      const userRating = userRatings[contract.gigId.toString()] || 0;
 
-      const statusInfo = getTransactionStatus(transaction);
+      const statusInfo = getContractStatus(contract);
 
-      const orderDate = new Date(transaction._id.getTimestamp());
+      const orderDate = new Date(contract.startTime);
       const formattedDate = orderDate.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short',
@@ -530,40 +522,50 @@ const getUserPurchaseHistory = async (req, res) => {
       }
 
       return {
-        id: transaction._id,
-        orderId: transaction.orderId,
-        orderNumber: transaction.orderId, // Added for consistency
+        id: contract._id,
+        orderId: contract.orderId,
+        orderNumber: contract.orderId,
         serviceId: gig ? gig._id : null,
         title: gig ? gig.name : "Service not found",
         seller: seller ? seller.name : "Unknown Seller",
         sellerId: seller ? seller._id : null,
-        sellerRating: seller ? (seller.rating || 4.5) : 4.5,
+        sellerRating: seller.rating,
         date: formattedDate,
         dateSort: orderDate,
         status: statusInfo.status,
         statusType: statusInfo.statusType,
         orderStatus: statusInfo.statusType,
-        paymentStatus: statusInfo.statusType === 'delivered' ? 'settlement' : 
-                      statusInfo.statusType === 'cancelled' ? 'failed' : 'paid',
-        completed: statusInfo.statusType === 'delivered',
-        delivered: statusInfo.statusType === 'delivered',
-        price: `Rp ${transaction.amount.toLocaleString('id-ID')}`,
-        amount: transaction.amount,
+        progress: contract.progress,
+        completed: contract.progress === 3,
+        delivered: contract.progress === 3,
+        price: `Rp ${(contract.package?.price || 0).toLocaleString('id-ID')}`,
+        amount: contract.package?.price || 0,
+        packageName: contract.package?.name || "Basic Package",
+        packageDelivery: contract.package?.deliveryTime || "7 days",
         rating: userRating,
         hasReview: hasReview,
         deliveryTime: statusInfo.deliveryTime,
         category: gig && gig.categories ? gig.categories : ["General"],
         image: imageUrls ? imageUrls.primary : null,
         imageUrls: imageUrls,
-        description: gig ? gig.description.substring(0, 100) + "..." : "No description available"
+        description: gig ? gig.description.substring(0, 100) + "..." : "No description available",
+        startTime: contract.startTime,
+        progressTime: contract.progressTime,
+        deliveredTime: contract.deliveredTime,
+        finishedTime: contract.finishedTime
       };
     });
 
-    // Sort: In Progress first, then Completed, then Cancelled
+    // Sort: In Progress first, then others by date
     purchaseHistory.sort((a, b) => {
-      const statusPriority = { 'progress': 0, 'delivered': 1, 'cancelled': 2 };
-      const aPriority = statusPriority[a.statusType] || 3;
-      const bPriority = statusPriority[b.statusType] || 3;
+      const statusPriority = { 
+        'progress': 0, 
+        'review': 1, 
+        'pending': 2, 
+        'completed': 3, 
+      };
+      const aPriority = statusPriority[a.statusType] || 5;
+      const bPriority = statusPriority[b.statusType] || 5;
       
       if (aPriority !== bPriority) {
         return aPriority - bPriority;
@@ -572,7 +574,7 @@ const getUserPurchaseHistory = async (req, res) => {
       return b.dateSort - a.dateSort;
     });
 
-    const totalPages = Math.ceil(totalTransactions / limit);
+    const totalPages = Math.ceil(totalContracts / limit);
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
 
@@ -583,7 +585,7 @@ const getUserPurchaseHistory = async (req, res) => {
         totalPages,
         hasNextPage,
         hasPrevPage,
-        totalItems: totalTransactions
+        totalItems: totalContracts
       }
     });
 
@@ -593,7 +595,7 @@ const getUserPurchaseHistory = async (req, res) => {
   }
 };
 
-// FIXED: Consistent data format matching purchase history
+// Updated for Contract model
 const getUserReviews = async (req, res) => {
   const { userId } = req.params;
   const page = parseInt(req.query.page) || 1;
@@ -628,19 +630,20 @@ const getUserReviews = async (req, res) => {
       sellerMap[seller._id.toString()] = seller;
     });
 
-    const transactions = await Transaction.find({
-      customer_email: user.email,
+    // Find contracts for price information
+    const contracts = await Contract.find({
+      userId: userId,
       gigId: { $in: gigIds }
     });
-    const transactionMap = {};
-    transactions.forEach(transaction => {
-      transactionMap[transaction.gigId.toString()] = transaction;
+    const contractMap = {};
+    contracts.forEach(contract => {
+      contractMap[contract.gigId.toString()] = contract;
     });
 
     const formattedReviews = reviews.map(review => {
       const gig = gigMap[review.gigId.toString()];
       const seller = gig ? sellerMap[gig.creator.toString()] : null;
-      const transaction = transactionMap[review.gigId.toString()];
+      const contract = contractMap[review.gigId.toString()];
 
       const decryptedMessage = cryptoDecrypt(review.reviewMessage, review.iv);
 
@@ -656,38 +659,39 @@ const getUserReviews = async (req, res) => {
         imageUrls = processGoogleDriveImage(gig.images[0]);
       }
 
-      // Consistent format with purchase history
       return {
         id: review._id,
         serviceId: gig ? gig._id : null,
-        title: gig ? gig.name : "Service not found", // Matches purchase history
-        serviceTitle: gig ? gig.name : "Service not found", // For frontend compatibility
+        title: gig ? gig.name : "Service not found",
+        serviceTitle: gig ? gig.name : "Service not found",
         seller: seller ? seller.name : "Unknown Seller",
-        serviceSeller: seller ? seller.name : "Unknown Seller", // For frontend compatibility
+        serviceSeller: seller ? seller.name : "Unknown Seller",
         sellerId: seller ? seller._id : null,
-        sellerRating: seller ? (seller.rating || 4.5) : 4.5,
-        orderId: transaction ? transaction.orderId : 'N/A',
-        orderNumber: transaction ? transaction.orderId : 'N/A', // Added for consistency
+        sellerRating: seller.rating,
+        orderId: contract ? contract.orderId : 'N/A',
+        orderNumber: contract ? contract.orderId : 'N/A',
         date: formattedDate,
-        reviewDate: review.createdDate, // ISO format for frontend
+        reviewDate: review.createdDate,
         dateSort: reviewDate,
         rating: review.rating,
-        userRating: review.rating, // For frontend compatibility
+        userRating: review.rating,
         reviewText: decryptedMessage,
-        price: transaction ? `Rp ${transaction.amount.toLocaleString('id-ID')}` : "Rp 0",
-        servicePrice: transaction ? `Rp ${transaction.amount.toLocaleString('id-ID')}` : "Rp 0", // For frontend compatibility
-        amount: transaction ? transaction.amount : 0,
+        price: contract ? `Rp ${(contract.package?.price || 0).toLocaleString('id-ID')}` : "Rp 0",
+        servicePrice: contract ? `Rp ${(contract.package?.price || 0).toLocaleString('id-ID')}` : "Rp 0",
+        amount: contract ? (contract.package?.price || 0) : 0,
+        packageName: contract ? (contract.package?.name || "Basic Package") : "Basic Package",
         category: gig && gig.categories ? gig.categories : ["General"],
-        deliveryTime: "Delivered on time", // Reviews only exist for completed orders
-        delivery: "Delivered on time", // Alternative field name
+        deliveryTime: "Order completed",
+        delivery: "Order completed",
         image: imageUrls ? imageUrls.primary : null,
         imageUrls: imageUrls,
-        description: gig ? gig.description.substring(0, 100) + "..." : "Professional service provided", // Added description
-        serviceDescription: gig ? gig.description.substring(0, 100) + "..." : "Professional service provided", // For frontend compatibility
+        description: gig ? gig.description.substring(0, 100) + "..." : "Professional service provided",
+        serviceDescription: gig ? gig.description.substring(0, 100) + "..." : "Professional service provided",
         verified: true,
-        orderStatus: 'completed', // Reviews only exist for completed orders
+        orderStatus: 'completed',
         status: 'Completed',
-        statusType: 'delivered',
+        statusType: 'completed',
+        progress: 3,
         completed: true,
         delivered: true,
         helpful: Math.floor(Math.random() * 20) + 1
@@ -758,22 +762,23 @@ const submitReview = async (req, res) => {
       return res.status(400).json({ error: "Service tidak ditemukan" });
     }
 
-    const transaction = await Transaction.findOne({
+    // Updated to use Contract model
+    const contract = await Contract.findOne({
       orderId: orderId,
       gigId: serviceId,
-      customer_email: user.email
+      userId: userId
     });
 
-    if (!transaction) {
+    if (!contract) {
       return res.status(400).json({ 
-        error: "Order tidak ditemukan atau tidak valid" 
+        error: "Contract tidak ditemukan atau tidak valid" 
       });
     }
 
-    const validStatuses = ["settlement", "capture", "paid", "success", "completed"];
-    if (!validStatuses.includes(transaction.status?.toLowerCase())) {
+    // Check if contract is completed (progress = 3)
+    if (contract.progress !== 3) {
       return res.status(400).json({ 
-        error: "Review hanya bisa dibuat untuk order yang sudah selesai" 
+        error: "Review hanya bisa dibuat untuk contract yang sudah selesai" 
       });
     }
 
@@ -804,6 +809,7 @@ const submitReview = async (req, res) => {
       });
     }
 
+    // Update seller rating
     if (sellerId) {
       try {
         const sellerGigs = await Gig.find({ creator: sellerId });
