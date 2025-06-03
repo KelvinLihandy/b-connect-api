@@ -337,7 +337,6 @@ const getUserStats = async (req, res) => {
       customer_email: user.email
     });
 
-    // ✅ FIXED: Include "paid" status in completed transactions
     const completedTransactions = userTransactions.filter(t => 
       t.status === "settlement" || t.status === "capture" || t.status === "paid"
     );
@@ -364,6 +363,72 @@ const getUserStats = async (req, res) => {
   }
 };
 
+// ✅ FIXED: Improved Google Drive image processing with better URL generation
+const processGoogleDriveImage = (imageId) => {
+  if (!imageId || imageId === "temp" || imageId === "null" || imageId === "undefined" || imageId.trim() === "") {
+    console.log('Invalid image ID, returning null:', imageId);
+    return null;
+  }
+  
+  // Clean the imageId - remove any existing URL parts
+  let cleanId = imageId;
+  if (imageId.includes('/d/')) {
+    const match = imageId.match(/\/d\/([^\/]+)/);
+    cleanId = match ? match[1] : imageId;
+  } else if (imageId.includes('id=')) {
+    const match = imageId.match(/id=([^&]+)/);
+    cleanId = match ? match[1] : imageId;
+  }
+  
+  // Return the most reliable Google Drive thumbnail format
+  const thumbnailUrl = `https://drive.google.com/thumbnail?id=${cleanId}&sz=w400-h300`;
+  console.log('Generated thumbnail URL:', thumbnailUrl);
+  return thumbnailUrl;
+};
+
+// ✅ FIXED: Enhanced transaction status mapping with better logic
+const getTransactionStatus = (transaction) => {
+  const status = transaction.status?.toLowerCase();
+  
+  console.log('Processing transaction status:', status, 'for transaction:', transaction.orderId);
+  
+  // Map transaction statuses to display statuses
+  switch (status) {
+    case "settlement":
+    case "capture":
+    case "paid":
+      return {
+        status: "Completed",
+        statusType: "delivered",
+        deliveryTime: "Delivered on time"
+      };
+    case "pending":
+      return {
+        status: "In Progress",
+        statusType: "progress",
+        deliveryTime: "Processing payment"
+      };
+    case "cancelled":
+    case "canceled":
+    case "failed":
+    case "expire":
+    case "deny":
+      return {
+        status: "Cancelled",
+        statusType: "cancelled",
+        deliveryTime: "Order cancelled"
+      };
+    default:
+      // Default to progress for unknown statuses - this was the issue
+      console.log('Unknown status, defaulting to progress:', status);
+      return {
+        status: "In Progress",
+        statusType: "progress",
+        deliveryTime: "Processing order"
+      };
+  }
+};
+
 const getUserPurchaseHistory = async (req, res) => {
   const { userId } = req.params;
   const page = parseInt(req.query.page) || 1;
@@ -376,6 +441,8 @@ const getUserPurchaseHistory = async (req, res) => {
       return res.status(400).json({ error: "User tidak ditemukan" });
     }
 
+    console.log('Fetching purchase history for user:', user.email);
+
     const totalTransactions = await Transaction.countDocuments({
       customer_email: user.email
     });
@@ -386,6 +453,8 @@ const getUserPurchaseHistory = async (req, res) => {
       .sort({ _id: -1 })
       .skip(skip)
       .limit(limit);
+
+    console.log(`Found ${transactions.length} transactions out of ${totalTransactions} total`);
 
     const gigIds = transactions.map(t => t.gigId);
     const gigs = await Gig.find({ _id: { $in: gigIds } });
@@ -407,23 +476,8 @@ const getUserPurchaseHistory = async (req, res) => {
       const gig = gigMap[transaction.gigId.toString()];
       const seller = gig ? sellerMap[gig.creator.toString()] : null;
 
-      // ✅ FIXED: Status logic untuk handle "paid" status
-      let status, statusType, deliveryTime;
-      if (transaction.status === "pending") {
-        status = "In Progress";
-        statusType = "progress";
-        deliveryTime = "Processing payment";
-      } else if (transaction.status === "settlement" || 
-                 transaction.status === "capture" || 
-                 transaction.status === "paid") {
-        status = "Completed";
-        statusType = "delivered";
-        deliveryTime = "Delivered on time";
-      } else {
-        status = "Cancelled";
-        statusType = "cancelled";
-        deliveryTime = "Order cancelled";
-      }
+      // ✅ FIXED: Use the improved helper function for consistent status determination
+      const { status, statusType, deliveryTime } = getTransactionStatus(transaction);
 
       const orderDate = new Date(transaction._id.getTimestamp());
       const formattedDate = orderDate.toLocaleDateString('en-US', {
@@ -432,16 +486,16 @@ const getUserPurchaseHistory = async (req, res) => {
         day: 'numeric'
       });
 
-      // ✅ FIXED: Convert Google Drive ID to viewable URL
+      // ✅ FIXED: Improved image URL processing with better error handling
       let imageUrl = null;
       if (gig && gig.images && gig.images.length > 0) {
-        const imageId = gig.images[0];
-        if (imageId && imageId !== "temp" && imageId !== "null") {
-          imageUrl = `https://drive.google.com/uc?export=view&id=${imageId}`;
-        }
+        imageUrl = processGoogleDriveImage(gig.images[0]);
+        console.log('Processed image URL for', gig.name, ':', imageUrl);
+      } else {
+        console.log('No image found for gig:', gig?.name || 'Unknown');
       }
 
-      return {
+      const item = {
         id: transaction._id,
         title: gig ? gig.name : "Service not found",
         seller: seller ? seller.name : "Unknown Seller",
@@ -460,19 +514,37 @@ const getUserPurchaseHistory = async (req, res) => {
         serviceId: gig ? gig._id : null,
         description: gig ? gig.description.substring(0, 100) + "..." : "No description available"
       };
+
+      console.log('Created purchase item:', {
+        title: item.title,
+        status: item.status,
+        statusType: item.statusType,
+        image: item.image
+      });
+
+      return item;
     });
 
+    // ✅ FIXED: Better sorting logic - progress first, then by date
     purchaseHistory.sort((a, b) => {
-      if (a.statusType !== b.statusType) {
-        if (a.statusType === "progress") return -1;
-        if (b.statusType === "progress") return 1;
+      // First sort by status priority
+      const statusPriority = { 'progress': 0, 'delivered': 1, 'cancelled': 2 };
+      const aPriority = statusPriority[a.statusType] || 3;
+      const bPriority = statusPriority[b.statusType] || 3;
+      
+      if (aPriority !== bPriority) {
+        return aPriority - bPriority;
       }
+      
+      // Then by date (newest first)
       return b.dateSort - a.dateSort;
     });
 
     const totalPages = Math.ceil(totalTransactions / limit);
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
+
+    console.log('Returning purchase history with', purchaseHistory.length, 'items');
 
     return res.status(200).json({
       purchaseHistory,
@@ -503,12 +575,16 @@ const getUserReviews = async (req, res) => {
       return res.status(400).json({ error: "User tidak ditemukan" });
     }
 
+    console.log('Fetching reviews for user:', userId);
+
     const totalReviews = await Review.countDocuments({ reviewerId: userId });
 
     const reviews = await Review.find({ reviewerId: userId })
       .sort({ createdDate: -1 })
       .skip(skip)
       .limit(limit);
+
+    console.log(`Found ${reviews.length} reviews out of ${totalReviews} total`);
 
     const gigIds = reviews.map(r => r.gigId);
     const gigs = await Gig.find({ _id: { $in: gigIds } });
@@ -549,16 +625,16 @@ const getUserReviews = async (req, res) => {
         day: 'numeric'
       });
 
-      // ✅ FIXED: Convert Google Drive ID to viewable URL
+      // ✅ FIXED: Improved image URL processing
       let imageUrl = null;
       if (gig && gig.images && gig.images.length > 0) {
-        const imageId = gig.images[0];
-        if (imageId && imageId !== "temp" && imageId !== "null") {
-          imageUrl = `https://drive.google.com/uc?export=view&id=${imageId}`;
-        }
+        imageUrl = processGoogleDriveImage(gig.images[0]);
+        console.log('Processed review image URL for', gig.name, ':', imageUrl);
+      } else {
+        console.log('No image found for review gig:', gig?.name || 'Unknown');
       }
 
-      return {
+      const reviewItem = {
         id: review._id,
         title: gig ? gig.name : "Service not found",
         seller: seller ? seller.name : "Unknown Seller",
@@ -576,11 +652,21 @@ const getUserReviews = async (req, res) => {
         helpful: Math.floor(Math.random() * 20) + 1,
         verified: true
       };
+
+      console.log('Created review item:', {
+        title: reviewItem.title,
+        rating: reviewItem.rating,
+        image: reviewItem.image
+      });
+
+      return reviewItem;
     });
 
     const totalPages = Math.ceil(totalReviews / limit);
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
+
+    console.log('Returning reviews with', formattedReviews.length, 'items');
 
     return res.status(200).json({
       reviews: formattedReviews,
