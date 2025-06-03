@@ -21,7 +21,7 @@ const oauth2Client = new google.auth.OAuth2(
   process.env.REDIRECT_URI
 );
 
-const TOKEN_PATH = '/home/site/tokens.json';
+const TOKEN_PATH = process.env.NODE_ENV == "dev" ? 'tokens.json' : '/home/site/tokens.json';
 
 const drive = google.drive({
   version: 'v3',
@@ -49,7 +49,7 @@ const deleteTokens = () => {
 
 const getStoredTokens = () => {
   try {
-    const tokens = fs.readFileSync("/home/site/tokens.json");
+    const tokens = fs.readFileSync(TOKEN_PATH);
     return JSON.parse(tokens);
   } catch (err) {
     return null;
