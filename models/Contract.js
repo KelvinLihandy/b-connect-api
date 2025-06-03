@@ -37,6 +37,10 @@ const contractSchema = new mongoose.Schema({
   finishedTime: {
     type: Date,
     default: null
+  },
+  proofId: {
+    type: String,
+    required: true,
   }
 },
   { versionKey: false }
