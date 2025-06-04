@@ -37,9 +37,6 @@ const getOrderDetails = async (req, res) => {
       }
     }
 
-    // Get related transaction 
-    const transaction = await Transaction.findOne({ orderId });
-
     // Get related gig
     const gig = await Gig.findById(contract.gigId);
 
@@ -73,11 +70,19 @@ const getOrderDetails = async (req, res) => {
         name: buyer.name,
         email: buyer.email
       },
-      transaction: transaction ? {
-        status: transaction.status,
-        amount: transaction.amount,
+      transaction: {
+        status: contract.progress == 0
+          ? "Waiting"
+          : contract.progress == 1
+            ? "In Progress"
+            : contract.progress == 2
+              ? "Delivered"
+              : contract.progress == 3
+                ? "Finished"
+                : "Unknown",
+        amount: contract.package.price,
         paymentMethod: "Bank Transfer"
-      } : null
+      }
     };
 
     return res.status(200).json(orderDetails);
