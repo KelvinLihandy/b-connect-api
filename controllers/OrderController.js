@@ -79,7 +79,9 @@ const getOrderDetails = async (req, res) => {
               ? "Delivered"
               : contract.progress == 3
                 ? "Finished"
-                : "Unknown",
+                : contract.progress == 4
+                  ? 'Rejected'
+                  : "Unknown",
         amount: contract.package.price,
         paymentMethod: "Bank Transfer"
       }
@@ -126,6 +128,11 @@ const updateOrderProgress = async (req, res) => {
     }
     else if (progress == 3) {
       updateFields.finishedTime = new Date();
+    }
+    else if (progress == 4){
+      updateFields.progressTime = null;
+      updateFields.deliveredTime = null;
+      updateFields.finishedTime = null;
     }
 
     const updatedContract = await Contract.findOneAndUpdate(
