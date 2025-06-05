@@ -1,11 +1,7 @@
 import dotenv from "dotenv";
 import Notification from "../models/Notification.js";
-import { cryptoDecrypt, cryptoEncrypt } from "../utils/HashUtils.js";
+import { cryptoDecrypt } from "../utils/HashUtils.js";
 import Room from "../models/Room.js";
-import { drive } from "../config/db.js";
-import { uploadSingle } from "../utils/DriveUtil.js";
-import { upload } from "../config/multer.js";
-import { getUserInRooms } from "./UserController.js";
 import { User } from "../models/User.js";
 import Message from "../models/Message.js";
 import { getFileData } from "./ChatController.js";
@@ -97,14 +93,50 @@ const sendNotification = async (data) => {
       messageType: "chat",
     }
     const newNotification = await Notification.create(notification);
-    newNotification.save();
+    await newNotification.save();
+    
     const socketId = socketMap ? socketMap[receiverId] : null;
-    if (socketId) {
-      await getAllNotificationsWithData(receiverId, socketId);
-      ioPass.to(socketId).emit('receive_notifications', newNotification);//pass array
+    if (socketId && ioPass) {
+      const notifications = await Notification.find({ receiverId }).sort({ receivedTime: -1 });
+      let notificationsData = [];
+      if(notifications.length > 0){
+        notificationsData = await Promise.all(
+          notifications.map(async (notification) => {
+            let sender = null;
+            let roomId = null;
+            let message = null;
+            if (notification.messageType === "chat" && notification.messageId) {
+              message = await Message.findById(notification.messageId);
+              message.content = cryptoDecrypt(message.content, message.iv);
+              if (message.type !== "text") {
+                const filedata = await getFileData(message.content);
+                message.content = filedata.fileName
+              }
+              roomId = message.roomId;
+              sender = await User.findById(message.senderId).select("_id picture name");
+            } else {
+              sender = {
+                _id: "system",
+                picture: "",
+                name: "System"
+              };
+            }
+            return {
+              ...notification.toObject(),
+              messageId: undefined,
+              message,
+              sender,
+              roomId,
+            };
+          })
+        );
+      }
+      ioPass.to(socketId).emit('receive_notifications', notificationsData);
       console.log(`Notifikasi terkirim ke id ${receiverId}`);
     }
-    else console.log(`User ${receiverId} tidak online`);
+    else {
+      console.log(`User ${receiverId} tidak online`);
+    }
   }
 }
 
