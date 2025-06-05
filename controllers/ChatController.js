@@ -58,6 +58,11 @@ const handleSocketChat = (socket, io) => {
   });
 };
 
+// Function to set the io instance from main server file
+const setIoInstance = (io) => {
+  ioPass = io;
+};
+
 const saveTextMessage = async (message) => {
   try {
     const newMessage = new Message({
@@ -107,7 +112,14 @@ const saveFileMessage = [
       await newMessage.save();
       const messageList = await getAllMessages(roomId);
       await sendNotification(newMessage);
-      ioPass.to(roomId).emit("receive_message", messageList);
+      
+      // Check if ioPass is available before emitting
+      if (ioPass) {
+        ioPass.to(roomId).emit("receive_message", messageList);
+        console.log(`Message emitted to room ${roomId}`);
+      } else {
+        console.warn("Socket.IO instance not available, skipping real-time message emit");
+      }
 
       return res.status(200).json({ message: `save file message sukses dengan id ${fileId}`, newMessage })
     } catch (error) {
@@ -186,4 +198,4 @@ const getFileData = async (fileId) => {
   }
 };
 
-export { handleSocketChat, saveTextMessage, saveFileMessage, getAllMessages, createRoom, getRooms, getFileData };
+export { handleSocketChat, saveTextMessage, saveFileMessage, getAllMessages, createRoom, getRooms, getFileData, setIoInstance };

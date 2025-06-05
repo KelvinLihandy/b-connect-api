@@ -20,7 +20,7 @@ import {
   deleteTokens,
   handleInvalidGrant,
 } from "./config/db.js";
-import { handleSocketChat } from "./controllers/ChatController.js";
+import { handleSocketChat, setIoInstance } from "./controllers/ChatController.js";
 import { handleSocketNotification } from "./controllers/NotificationController.js";
 import { useAzureSocketIO } from "@azure/web-pubsub-socket.io";
 dotenv.config();
@@ -109,6 +109,7 @@ app.get('/auth/google/callback', async (req, res) => {
 })();
 
 const userSocketMap = {};
+setIoInstance(io);
 
 io.on("connection", (socket) => {
   console.log("enter", socket.id);
