@@ -35,36 +35,39 @@ const handleSocketNotification = (socket, io, userSocketMap) => {
 const getAllNotificationsWithData = async (receiverId, socket) => {
   try {
     const notifications = await Notification.find({ receiverId }).sort({ receivedTime: -1 });
-    const notificationsData = await Promise.all(
-      notifications.map(async (notification) => {
-        let sender = null;
-        let roomId = null;
-        let message = null;
-        if (notification.messageType === "chat" && notification.messageId) {
-          message = await Message.findById(notification.messageId);
-          message.content = cryptoDecrypt(message.content, message.iv);
-          if (message.type !== "text") {
-            const filedata = await getFileData(message.content);
-            message.content = filedata.fileName
+    let notificationsData = [];
+    if(notifications.length > 0){
+      notificationsData = await Promise.all(
+        notifications.map(async (notification) => {
+          let sender = null;
+          let roomId = null;
+          let message = null;
+          if (notification.messageType === "chat" && notification.messageId) {
+            message = await Message.findById(notification.messageId);
+            message.content = cryptoDecrypt(message.content, message.iv);
+            if (message.type !== "text") {
+              const filedata = await getFileData(message.content);
+              message.content = filedata.fileName
+            }
+            roomId = message.roomId;
+            sender = await User.findById(message.senderId).select("_id picture name");
+          } else {
+            sender = {
+              _id: "system",
+              picture: "",
+              name: "System"
+            };
           }
-          roomId = message.roomId;
-          sender = await User.findById(message.senderId).select("_id picture name");
-        } else {
-          sender = {
-            _id: "system",
-            picture: "",
-            name: "System"
+          return {
+            ...notification.toObject(),
+            messageId: undefined,
+            message,
+            sender,
+            roomId,
           };
-        }
-        return {
-          ...notification.toObject(),
-          messageId: undefined,
-          message,
-          sender,
-          roomId,
-        };
-      })
-    );
+        })
+      );
+    }
     socket.emit("receive_notifications", notificationsData);
   } catch (err) {
     console.error("Error fetching notifications:", err);
