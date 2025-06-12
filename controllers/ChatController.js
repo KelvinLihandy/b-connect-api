@@ -58,7 +58,6 @@ const handleSocketChat = (socket, io) => {
   });
 };
 
-// Function to set the io instance from main server file
 const setIoInstance = (io) => {
   ioPass = io;
 };
@@ -112,8 +111,7 @@ const saveFileMessage = [
       await newMessage.save();
       const messageList = await getAllMessages(roomId);
       await sendNotification(newMessage);
-      
-      // Check if ioPass is available before emitting
+      console.log("iopass", ioPass);
       if (ioPass) {
         ioPass.to(roomId).emit("receive_message", messageList);
         console.log(`Message emitted to room ${roomId}`);
