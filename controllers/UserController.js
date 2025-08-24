@@ -13,7 +13,8 @@ const getTrendingUsers = async (req, res) => {
     const topUsers = await User.find({
       access: true
     }, "picture name type rating completes reviews")
-      .sort({ rating: -1, completes: -1 });
+      .sort({ rating: -1, completes: -1 })
+      .limit(3);
     return res.status(200).json(topUsers);
   } catch (error) {
     console.error("Error fetch trending users:", error);
