@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import { userSchema } from "./User.js";
 import { PackageSchema } from "./Gig.js";
 
 const transactionSchema = new mongoose.Schema({

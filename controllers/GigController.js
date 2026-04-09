@@ -1,10 +1,7 @@
-import mongoose from "mongoose";
 import { upload } from "../config/multer.js";
 import { Gig } from "../models/Gig.js";
 import { uploadMultiple } from "../utils/DriveUtil.js";
 import dotenv from "dotenv";
-import Transaction from "../models/Transaction.js";
-import Contract from "../models/Contract.js";
 import { User } from "../models/User.js";
 import Review from "../models/Review.js";
 import { cryptoDecrypt } from "../utils/HashUtils.js";
@@ -90,7 +87,11 @@ const getGig = async (req, res) => {
 };
 
 const getGigUser = async (req, res) => {
-  const userId = userId;
+  const userId = req.user?.id || req.params?.userId;
+
+  if (!userId) {
+    return res.status(400).json({ error: "User id tidak ditemukan" });
+  }
 
   try {
     const userGigs = await Gig.find({ creator: userId });

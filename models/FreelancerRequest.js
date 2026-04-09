@@ -1,6 +1,4 @@
 import mongoose from "mongoose";
-import { hashing } from "../utils/HashUtils.js";
-import { type } from "os";
 
 export const freelancerRequestSchema = new mongoose.Schema({
   status: {

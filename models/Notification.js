@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { cryptoDecrypt, cryptoEncrypt, hashing } from "../utils/HashUtils.js";
+import { cryptoEncrypt } from "../utils/HashUtils.js";
 
 const notificationSchema = new mongoose.Schema({
   receiverId: {

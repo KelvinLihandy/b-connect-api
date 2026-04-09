@@ -1,17 +1,49 @@
 import multer from "multer";
-import { fileURLToPath } from "url";
-import { dirname } from "path";
+import crypto from "crypto";
+import fs from "fs";
+import os from "os";
+import path from "path";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const uploadDir = path.join(os.tmpdir(), "bconnect-uploads");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const allowedMimeTypes = new Set([
+  "application/pdf",
+  "application/zip",
+  "application/x-zip-compressed",
+  "text/plain",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+]);
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, __dirname);
+    cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + '-' + file.originalname);
+    const ext = path.extname(file.originalname || "");
+    const safeExt = ext && ext.length <= 10 ? ext : "";
+    cb(null, `${Date.now()}-${crypto.randomBytes(8).toString("hex")}${safeExt}`);
   }
 });
-const upload = multer({ storage });
+
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype?.startsWith("image/")) return cb(null, true);
+  if (allowedMimeTypes.has(file.mimetype)) return cb(null, true);
+  return cb(new Error("Unsupported file type"));
+};
+
+const upload = multer({
+  storage,
+  limits: {
+    fileSize: 25 * 1024 * 1024,
+  },
+  fileFilter,
+});
 
 export { upload }

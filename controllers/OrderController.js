@@ -1,6 +1,4 @@
-import mongoose from "mongoose";
 import Contract from "../models/Contract.js";
-import Transaction from "../models/Transaction.js";
 import { Gig } from "../models/Gig.js";
 import { User } from "../models/User.js";
 import Review from "../models/Review.js";
@@ -9,24 +7,20 @@ import Review from "../models/Review.js";
 const getOrderDetails = async (req, res) => {
   try {
     const { orderId } = req.params;
-    console.log("Searching for order with ID:", orderId);
-
-    // Find contract using orderId
     const contract = await Contract.findOne({ orderId });
 
     if (!contract) {
-      console.log("Order not found in database for ID:", orderId);
       return res.status(404).json({ error: "Order not found" });
     }
 
-    console.log("Order found:", contract);
+    const gig = await Gig.findById(contract.gigId);
+    if (!gig) {
+      return res.status(404).json({ error: "Gig not found" });
+    }
 
     // Check if user is authorized to view this order (must be buyer or seller)
     // Skip validation if the route is the public one or the user is not authenticated
     if (req.user && !req.isPublicRoute) {
-      // Get related gig to check seller
-      const gig = await Gig.findById(contract.gigId);
-
       // User is authorized if they are either the buyer or the seller
       const isAuthorized =
         req.user.id === contract.userId.toString() || // User is the buyer
@@ -36,9 +30,6 @@ const getOrderDetails = async (req, res) => {
         return res.status(403).json({ error: "You are not authorized to view this order" });
       }
     }
-
-    // Get related gig
-    const gig = await Gig.findById(contract.gigId);
 
     // Get seller info
     const seller = await User.findById(gig.creator);
@@ -59,16 +50,17 @@ const getOrderDetails = async (req, res) => {
       finishedTime: contract.finishedTime,
       proofId: contract.proofId,
       gigInfo: {
-        title: gig.title,
+        title: gig.name,
         image: gig.images && gig.images.length > 0 ? gig.images[0] : null,
         creator: {
-          name: seller.name,
-          id: seller._id
+          name: seller?.name || "Unknown",
+          id: seller?._id || null
         }
-      }, buyer: {
-        _id: buyer._id,
-        name: buyer.name,
-        email: buyer.email
+      },
+      buyer: {
+        _id: buyer?._id || null,
+        name: buyer?.name || "Unknown",
+        email: buyer?.email || ""
       },
       transaction: {
         status: contract.progress == 0

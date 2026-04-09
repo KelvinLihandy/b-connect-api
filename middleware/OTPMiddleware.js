@@ -10,7 +10,7 @@ const OTPMiddleware = (req, res, next) => {
     const verified = jwt.verify(token, process.env.JWT_SECRET);
     req.token = verified.token;
     next();
-  } catch (err) {
+  } catch {
     return res.status(403).json({ error: "Token tidak valid!" });
   }
 };

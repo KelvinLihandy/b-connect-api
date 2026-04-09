@@ -1,22 +1,27 @@
 import { User } from "../models/User.js";
 import OTP from "../models/OTP.js";
-import { verifyHash, hashing } from "../utils/HashUtils.js";
+import { cryptHash, verifyHash, hashing } from "../utils/HashUtils.js";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 
 dotenv.config()
 
+const isProduction =
+  process.env.NODE_ENV === "production" ||
+  process.env.NODE_ENV === "prod" ||
+  Boolean(process.env.WEBSITE_INSTANCE_ID);
+
 const register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    const rfcEmailRegex = /^(?:[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}|(?:\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-zA-Z\-0-9]*[a-zA-Z0-9]:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f])\]))$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const regex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     if (!name || !email || !password) {
       return res.status(400).json({ error: "Semua field harus diisi!" });
     }
-    if (!rfcEmailRegex.test(email)) {
+    if (!emailRegex.test(email)) {
       return res.status(400).json({ error: "format email tidak valid!" });
     }
     if (!regex.test(password)) {
@@ -73,8 +78,8 @@ const login = async (req, res) => {
     const token = jwt.sign(loggedUser, process.env.JWT_SECRET, { expiresIn: remember ? "30d" : "2h" });
     res.cookie("token", token, {
       httpOnly: true,
-      secure: true,
-      sameSite: "None",
+      secure: isProduction,
+      sameSite: isProduction ? "None" : "Lax",
       maxAge: remember ? 30 * 24 * 60 * 60 * 1000 : undefined,
       path: "/"
     });
@@ -95,20 +100,23 @@ const sendOTP = async (req, res) => {
 
   try {
     const user = await User.findOne({ email });
-    const allOTPs = await OTP.find({});
     if (!user) {
       return res.status(400).json({ error: "Akun tidak ditemukan." });
     }
-    for (const record of allOTPs) {
-      const existOTP = await verifyHash(email, record.token);
-      if (existOTP) {
-        return res.status(400).json({ error: "OTP akun ini belum expired" })
-      }
+
+    const emailKey = String(email || "").trim().toLowerCase();
+    const tokenKey = cryptHash(emailKey, "sha256", "hex");
+    const existingOtp = await OTP.findOne({
+      tokenKey,
+      expiresAt: { $gt: new Date() }
+    });
+    if (existingOtp) {
+      return res.status(400).json({ error: "OTP akun ini belum expired" });
     }
 
     const otpNumber = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-    const otp = new OTP({ token: email, otp: otpNumber, expiresAt });
+    const otp = new OTP({ token: emailKey, tokenKey, otp: otpNumber, expiresAt });
     await otp.save();
     const transporter = nodemailer.createTransport({
       service: "gmail",
@@ -144,19 +152,20 @@ const verifyOtp = async (req, res) => {
   const { token, otp } = req.body;
 
   try {
-    let otpUser = null;
-    const allOTPs = await OTP.find({});
-    for (const record of allOTPs) {
-      const existToken = token === record.token;
-      const existOTP = await verifyHash(otp.toString(), record.otp);
-      if (existToken && existOTP) {
-        otpUser = record;
-        break;
-      }
+    if (!token || !otp) {
+      return res.status(400).json({ error: "Token dan OTP harus diisi." });
     }
+
+    const otpUser = await OTP.findOne({ token });
     if (!otpUser) {
       return res.status(400).json({ error: "OTP tidak ditemukan." });
     }
+
+    const existOTP = await verifyHash(otp.toString(), otpUser.otp);
+    if (!existOTP) {
+      return res.status(400).json({ error: "OTP tidak ditemukan." });
+    }
+
     if (otpUser.expiresAt < new Date()) {
       return res.status(400).json({ error: "Batas waktu OTP sudah lewat." });
     }
@@ -173,17 +182,28 @@ const resendOTP = async (req, res) => {
   const { token, email } = req.body;
 
   try {
-    const allOTPs = await OTP.find({});
-    for (const record of allOTPs) {
-      const existOTP = token === record.token;
-      if (existOTP) {
-        return res.status(400).json({ error: "OTP akun ini belum expired" })
-      }
+    if (!token || !email) {
+      return res.status(400).json({ error: "Token dan email harus diisi" });
+    }
+
+    const emailKey = String(email || "").trim().toLowerCase();
+    const tokenKey = cryptHash(emailKey, "sha256", "hex");
+    const tokenMatchesEmail = await verifyHash(emailKey, token);
+    if (!tokenMatchesEmail) {
+      return res.status(400).json({ error: "Email tidak sama dengan request." });
+    }
+
+    const existingOtp = await OTP.findOne({
+      tokenKey,
+      expiresAt: { $gt: new Date() }
+    });
+    if (existingOtp) {
+      return res.status(400).json({ error: "OTP akun ini belum expired" });
     }
 
     const otpNumber = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-    const otp = new OTP({ token: token, otp: otpNumber, expiresAt });
+    const otp = new OTP({ token, tokenKey, otp: otpNumber, expiresAt });
     await otp.save();
     const transporter = nodemailer.createTransport({
       service: "gmail",
@@ -250,8 +270,8 @@ const changePassword = async (req, res) => {
 const clearCookie = async (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
-    secure: true,
-    sameSite: "None",
+    secure: isProduction,
+    sameSite: isProduction ? "None" : "Lax",
     path: "/"
   });
 

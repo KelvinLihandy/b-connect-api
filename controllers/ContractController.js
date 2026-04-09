@@ -1,11 +1,7 @@
-import mongoose from "mongoose";
 import dotenv from "dotenv";
 import Contract from "../models/Contract.js";
 // import Midtrans from "midtrans-client";
 import { nanoid } from "nanoid";
-import Transaction from "../models/Transaction.js";
-import { cryptHash } from "../utils/HashUtils.js";
-import { User } from "../models/User.js";
 import { upload } from "../config/multer.js";
 import { uploadSingle } from "../utils/DriveUtil.js";
 dotenv.config();
@@ -167,13 +163,24 @@ const createContract = [
     const proof = req.file;
 
     try {
+      if (!gigId) return res.status(400).json({ error: "gigId harus diisi" });
+      if (!proof) return res.status(400).json({ error: "Proof file harus diupload" });
+
+      let parsedPackage;
+      try {
+        parsedPackage = typeof selectedPackage === "string" ? JSON.parse(selectedPackage) : selectedPackage;
+      } catch {
+        return res.status(400).json({ error: "selectedPackage tidak valid" });
+      }
+      if (!parsedPackage) return res.status(400).json({ error: "selectedPackage harus diisi" });
+
       const orderId = `TR-${nanoid(4)}-${nanoid(8)}`
       const proofId = await uploadSingle(proof, orderId, process.env.DRIVE_PROOF_ID);
       const newContract = new Contract({
         orderId: orderId,
         gigId: gigId,
         userId: userId,
-        package: JSON.parse(selectedPackage),
+        package: parsedPackage,
         proofId: proofId
       });
       await newContract.save();

@@ -8,6 +8,11 @@ import { uploadSingle } from "../utils/DriveUtil.js";
 import { cryptoDecrypt, hashing, verifyHash } from "../utils/HashUtils.js";
 import jwt from "jsonwebtoken";
 
+const isProduction =
+  process.env.NODE_ENV === "production" ||
+  process.env.NODE_ENV === "prod" ||
+  Boolean(process.env.WEBSITE_INSTANCE_ID);
+
 const getTrendingUsers = async (req, res) => {
   try {
     const topUsers = await User.find({
@@ -58,12 +63,12 @@ const updateUserProfile = [
     const { name, email, phoneNumber, descr, deletePicture, remember, porto } = req.body;
     const userId = req.user.id;
 
-    const rfcEmailRegex = /^(?:[a-zA-Z0-9!#$%&'+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'+/=?^_`{|}~-]+)|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])")@(?:(?:[a-zA-Z0-9](?:[a-zA-Z0-9-][a-zA-Z0-9])?\.)+[a-zA-Z]{2,}|(?:\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-zA-Z\-0-9][a-zA-Z0-9]:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f])\]))$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     
     if (!name && !email && !phoneNumber && !req.file && !deletePicture) {
       return res.status(400).json({ error: "Minimal satu field harus diupdate" });
     }
-    if (email && !rfcEmailRegex.test(email)) {
+    if (email && !emailRegex.test(email)) {
       return res.status(400).json({ error: "Format email tidak valid" });
     }
     if (phoneNumber && !/^(\+62|62|0)8[1-9][0-9]{6,10}$/.test(phoneNumber)) {
@@ -135,8 +140,8 @@ const updateUserProfile = [
       const token = jwt.sign(updatedUserPayload, process.env.JWT_SECRET, { expiresIn: remember ? "30d" : "2h" });
       res.cookie("token", token, {
         httpOnly: true,
-        secure: true,
-        sameSite: "None",
+        secure: isProduction,
+        sameSite: isProduction ? "None" : "Lax",
         maxAge: remember ? 30 * 24 * 60 * 60 * 1000 : undefined,
         path: "/"
       });
@@ -232,9 +237,10 @@ const changePassword = async (req, res) => {
 const uploadProfilePicture = [
   upload.single('image'),
   async (req, res) => {
-    const { userId } = req.body;
+    const userId = req.user?.id;
     const profileImage = req.file;
 
+    if (!userId) return res.status(401).json({ error: "Akses ditolak! Token tidak ditemukan." });
     if (!profileImage) return res.status(400).json({ error: "Error file pp tidak masuk" });
     
     try {
@@ -246,7 +252,7 @@ const uploadProfilePicture = [
       );
       if (!updatedUser) return res.status(400).json({ error: "User id tidak ditemukan" });
 
-      return res.status(200).json({ message: `Update pp sukses ke id ${userId}` })
+      return res.status(200).json({ message: "Update pp sukses" })
     }
     catch (err) {
       console.error("Error uploading pp:", err);
@@ -386,7 +392,7 @@ const processGoogleDriveImage = (imageId) => {
   
   let cleanId = imageId;
   if (imageId.includes('/d/')) {
-    const match = imageId.match(/\/d\/([^\/]+)/);
+    const match = imageId.match(/\/d\/([^/]+)/);
     cleanId = match ? match[1] : imageId;
   } else if (imageId.includes('id=')) {
     const match = imageId.match(/id=([^&]+)/);
@@ -978,8 +984,8 @@ const checkRequestStatus = async (req, res) => {
         const token = jwt.sign(updatedUserPayload, process.env.JWT_SECRET, { expiresIn: remember ? "30d" : "2h" });
         res.cookie("token", token, {
           httpOnly: true,
-          secure: true,
-          sameSite: "None",
+          secure: isProduction,
+          sameSite: isProduction ? "None" : "Lax",
           maxAge: remember ? 30 * 24 * 60 * 60 * 1000 : undefined,
           path: "/"
         });

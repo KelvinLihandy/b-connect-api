@@ -1,8 +1,11 @@
 import fs from "fs";
 import { drive } from "../config/db.js";
 
+const escapeDriveQueryValue = (value) => String(value ?? "").replace(/'/g, "\\'");
+
 const uploadSingle = async (file, folderName, parentFolderId) => {
-  const folderQuery = `mimeType='application/vnd.google-apps.folder' and trashed=false and name='${folderName}' and '${parentFolderId}' in parents`;
+  const safeFolderName = escapeDriveQueryValue(folderName);
+  const folderQuery = `mimeType='application/vnd.google-apps.folder' and trashed=false and name='${safeFolderName}' and '${parentFolderId}' in parents`;
   const folderList = await drive.files.list({
     q: folderQuery,
     fields: "files(id, name)",
@@ -45,7 +48,8 @@ const uploadSingle = async (file, folderName, parentFolderId) => {
 const uploadMultiple = async (files, folderName, parentFolderId) => {
   const uploadedFileIds = [];
 
-  const folderQuery = `mimeType='application/vnd.google-apps.folder' and trashed=false and name='${folderName}' and '${parentFolderId}' in parents`;
+  const safeFolderName = escapeDriveQueryValue(folderName);
+  const folderQuery = `mimeType='application/vnd.google-apps.folder' and trashed=false and name='${safeFolderName}' and '${parentFolderId}' in parents`;
   const folderList = await drive.files.list({
     q: folderQuery,
     fields: "files(id, name)",

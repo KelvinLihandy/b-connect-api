@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
 import Message from "../models/Message.js";
-import { cryptoDecrypt, cryptoEncrypt } from "../utils/HashUtils.js";
+import { cryptoDecrypt } from "../utils/HashUtils.js";
 import Room from "../models/Room.js";
 import { drive } from "../config/db.js";
 import { uploadSingle } from "../utils/DriveUtil.js";

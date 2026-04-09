@@ -16,10 +16,10 @@ import {
   getReviewAnalytics
 } from "../controllers/UserController.js";
 import authMiddleware from "../middleware/AuthMiddleware.js";
-import ReviewRateLimit from "../middleware/reviewRateLimit.js";
+import ReviewRateLimit from "../middleware/ReviewRateLimit.js";
 const router = express.Router();
 
-router.post("/upload-profile-picture", uploadProfilePicture);
+router.post("/upload-profile-picture", authMiddleware, uploadProfilePicture);
 router.post("/get-trending-users", getTrendingUsers);
 router.post("/get-user/:userId", getUser);
 router.patch("/update-user-profile", authMiddleware, updateUserProfile);

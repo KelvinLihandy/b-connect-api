@@ -51,7 +51,7 @@ const getStoredTokens = () => {
   try {
     const tokens = fs.readFileSync(TOKEN_PATH);
     return JSON.parse(tokens);
-  } catch (err) {
+  } catch {
     return null;
   }
 };

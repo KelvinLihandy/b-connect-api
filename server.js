@@ -7,42 +7,50 @@ import chatRoute from "./routes/Chat.js";
 import contractRoute from "./routes/Contract.js"
 import orderRoute from "./routes/Order.js"
 import cors from "cors";
-import fs from "fs";
 import http from "http";
 import cookieParser from "cookie-parser";
+import helmet from "helmet";
 import { Server } from "socket.io";
 import {
   oauth2Client,
-  drive,
   connectMongo,
   connectDrive,
   saveTokens,
-  deleteTokens,
-  handleInvalidGrant,
 } from "./config/db.js";
 import { handleSocketChat, setIoInstance } from "./controllers/ChatController.js";
 import { handleSocketNotification } from "./controllers/NotificationController.js";
-import { useAzureSocketIO } from "@azure/web-pubsub-socket.io";
 dotenv.config();
 
 const app = express();
+app.set("trust proxy", 1);
 const PORT = process.env.PORT || 5000;
 
+const isProduction =
+  process.env.NODE_ENV === "production" ||
+  process.env.NODE_ENV === "prod" ||
+  Boolean(process.env.WEBSITE_INSTANCE_ID);
+
 const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'http://localhost:5500',
-  'http://127.0.0.1:5500',
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-  'http://localhost:5000',
-  'http://127.0.0.1:5000',
   'https://b-connect-nu.vercel.app',
 ];
 
+const extraAllowedOrigins = (process.env.CORS_ORIGINS || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  if (allowedOrigins.includes(origin)) return true;
+  if (extraAllowedOrigins.includes(origin)) return true;
+  if (/^https:\/\/b-connect-nu(-[a-z0-9-]+)?\.vercel\.app$/i.test(origin)) return true;
+  if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) return true;
+  return false;
+};
+
 const corsOptions = {
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (isAllowedOrigin(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -57,13 +65,23 @@ const corsOptions = {
 // };
 
 app.use(cors(corsOptions));
+app.use(helmet());
 app.use(cookieParser());
 app.use(express.json());
 
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: corsOptions,
+  allowEIO3: true,
   maxHttpBufferSize: 1e8
+});
+
+io.engine.on("connection_error", (err) => {
+  console.error("Socket.IO connection_error", {
+    code: err.code,
+    message: err.message,
+    context: err.context,
+  });
 });
 
 // useAzureSocketIO(io, {
@@ -100,8 +118,20 @@ app.get('/auth/google/callback', async (req, res) => {
 
 (async () => {
   try {
-    await connectMongo();
-    await connectDrive();
+    if (process.env.MONGO_URI) {
+      await connectMongo();
+    } else if (isProduction) {
+      throw new Error("MONGO_URI is not set");
+    } else {
+      console.warn("⚠️ MONGO_URI not set - starting server without Mongo connection");
+    }
+
+    if (process.env.CLIENT_ID && process.env.CLIENT_SECRET && process.env.REDIRECT_URI) {
+      await connectDrive();
+    } else if (isProduction) {
+      console.warn("⚠️ Google Drive env vars not set (CLIENT_ID/CLIENT_SECRET/REDIRECT_URI)");
+    }
+
     server.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
     });
